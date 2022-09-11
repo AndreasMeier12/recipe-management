@@ -10,16 +10,16 @@ use regex::Regex;
 
 
 fn main() {
-    let inPathFile = Path::new("path.txt");
-    let inPath = fs::read_to_string(inPathFile)
+    let in_path_file = Path::new("path.txt");
+    let in_path = fs::read_to_string(in_path_file)
     .expect("There really should be a path");
-    let inPathOs = OsStr::new(&inPath);
+    let in_path_os = OsStr::new(&in_path);
 
-    let path = Path::new(inPathOs);
-    let rawContents = fs::read_to_string(path)
+    let path = Path::new(in_path_os);
+    let raw_contents = fs::read_to_string(path)
     .expect("Could not open file");
 
-    let res =  parse(rawContents);
+    let res =  parse(raw_contents);
     for a in res  {
         println!("{}", a)
         
@@ -31,20 +31,20 @@ fn main() {
 }
 
 
-fn parse(rawContents: String) -> Vec<ParseRecipe>{
+fn parse(raw_contens: String) -> Vec<ParseRecipe>{
 
 
-    let splitContents = rawContents.lines()
+    let splitContents = raw_contents.lines()
     .filter(|x| !x.is_empty())
     .filter(|x| x.matches('\t').count() <= 2)
-    .filter(|x| !x.replace("\t", "").is_empty());
+    .filter(|x| !x.replace('\t', "").is_empty());
     let mut res : Vec<ParseRecipe> = Vec::new();
     let mut book: String = String::from("");
     let mut season: Season = Independent;
 
-    for a in splitContents{
+    for a in split_contents{
         let depth = a.matches('\t').count();
-        let b = a.replace("\t", "");
+        let b = a.replace('\t', "");
 
         match depth {
             0 => {
@@ -59,11 +59,11 @@ fn parse(rawContents: String) -> Vec<ParseRecipe>{
                 let ingredients = parse_ingredients(b.clone()); 
                 let asdf = ParseRecipe{
                     course: String::from("bread"),
-                    name: name,
-                    season: season,
+                    name,
+                    season,
                     page: parse_page_number(b.clone()),
                     book: book.to_string(),
-                    ingredients: ingredients 
+                    ingredients 
 
 
                 };
@@ -86,8 +86,8 @@ fn parse(rawContents: String) -> Vec<ParseRecipe>{
 
 
 fn parse_recipe_name(b: String) -> String{
-    if b.contains("[") {
-        return b.split("[").nth(0).expect("Should be here").trim().to_string();
+    if b.contains('[') {
+        return b.split('[').next().expect("Should be here").trim().to_string();
     }
     let re = Regex::new(r"/\d+$/").unwrap();
 
@@ -95,9 +95,9 @@ fn parse_recipe_name(b: String) -> String{
 }
 
 fn parse_ingredients(b: String) -> Vec<String> {
-    if b.contains("]") && b.contains("[") {
-        let c = b.split("]").nth(0).expect("Should be here").split("[").nth(1).expect("Should be here");
-        return c.split("\n").map(str::to_string).collect();
+    if b.contains(']') && b.contains('[') {
+        let c = b.split(']').next().expect("Should be here").split('[').nth(1).expect("Should be here");
+        return c.split('\n').map(str::to_string).collect();
     }
     return vec![];
 
@@ -106,7 +106,7 @@ fn parse_ingredients(b: String) -> Vec<String> {
 }
 
 fn parse_page_number(b: String) -> u16{
-    let c = b.split(" ").last().unwrap();
+    let c = b.split(' ').last().unwrap();
     c.parse::<u16>().expect("This should be a positive number!")
 
 }
