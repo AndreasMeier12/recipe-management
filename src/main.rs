@@ -31,10 +31,10 @@ fn main() {
 }
 
 
-fn parse(raw_contens: String) -> Vec<ParseRecipe>{
+fn parse(raw_contents: String) -> Vec<ParseRecipe>{
 
 
-    let splitContents = raw_contents.lines()
+    let split_contents = raw_contents.lines()
     .filter(|x| !x.is_empty())
     .filter(|x| x.matches('\t').count() <= 2)
     .filter(|x| !x.replace('\t', "").is_empty());
