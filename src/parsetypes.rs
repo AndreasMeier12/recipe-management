@@ -6,13 +6,13 @@ pub struct ParseRecipe {
     pub season: ESeason,
     pub book: String,
     pub name: String,
-    pub page: u16,
+    pub page: Option<u16>,
     pub ingredients: Vec<String>,
 }
 impl fmt::Display for ParseRecipe{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 
-        write!(f, "{} {} {} {} {}", self.course, self.season, self.book, self.name, self.page)
+        write!(f, "{} {} {} {} {:?}", self.course, self.season, self.book, self.name, self.page)
     }
 }
 
@@ -90,4 +90,10 @@ pub fn match_season(a: &str) -> ESeason {
         "spring" => return ESeason::Spring,
         _ => return ESeason::Independent,
     }
+}
+
+#[derive(Eq, Hash, PartialEq)]
+pub struct FileWithCourse{
+    pub filename: String,
+    pub contents: String,
 }

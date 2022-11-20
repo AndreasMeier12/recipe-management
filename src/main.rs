@@ -1,6 +1,6 @@
 use std::path::{Path};
 use std::{fs, vec};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 
 use parsetypes::ParseRecipe;
@@ -12,9 +12,11 @@ use regex::Regex;
 use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::env;
+use std::fs::read_to_string;
 
 use itertools::Itertools;
 use crate::models::{QBook, QCourse, FullRecipe, InsertRecipe, InsertCourse, InsertBook, InsertSeason};
+use crate::parsetypes::FileWithCourse;
 
 
 pub mod models;
@@ -24,15 +26,10 @@ pub mod schema;
 
 fn main() {
     let in_path_file = Path::new("path.txt");
-    let in_path = fs::read_to_string(in_path_file)
-    .expect("There really should be a path");
-    let in_path_os = OsStr::new(&in_path);
+    let read_in = read_in(in_path_file);
 
-    let path = Path::new(in_path_os);
-    let raw_contents = fs::read_to_string(path)
-    .expect("Could not open file");
-
-    let res =  parse(raw_contents);
+    let res: Vec<ParseRecipe> =  read_in.into_iter().map(|x| parse(x.contents, x.filename))
+        .flatten().collect();
     let books: Vec<InsertBook> = res.iter().map(|x| x.book.as_str())
         .unique()
         .enumerate()
@@ -55,7 +52,7 @@ fn main() {
             let season_id = ESeason::value(x.season) as i32;
             let name = x.name.clone();
             let course_id = courses_to_id.get(x.course.as_str()).unwrap().unwrap();
-            let page = Some(x.page  as i32);
+            let page = x.page.map(|x| x as i32);
             return models::InsertRecipe{course: course_id, book: bookd_id, recipe_name: name, primary_season: season_id, page: page}
         })
         .collect();
@@ -106,8 +103,33 @@ fn build_season_record(a: ESeason) -> InsertSeason{
 
 }
 
+fn read_in(configPath: &Path) -> Vec<FileWithCourse>{
+    let in_paths: Vec<String> = fs::read_to_string(configPath)
+    .expect("There really should be a path").split("\n").into_iter()
+        .map(|x| x.to_string())
+        .collect();
+    let mut seen_courses: HashSet<String> = HashSet::new();
+    let mut res: Vec<FileWithCourse> = vec![];
+    for in_path in in_paths {
+        let in_path_os = OsStr::new(&in_path);
+            let path = Path::new(in_path_os);
 
-fn parse(raw_contents: String) -> Vec<ParseRecipe>{
+        let course = path.file_name().unwrap().to_str().unwrap();
+        if !seen_courses.contains(course) {
+            let raw_contents = fs::read_to_string(path)
+                .expect("Could not open file");
+
+            seen_courses.insert(course.to_string());
+
+            res.push(FileWithCourse { contents: raw_contents, filename: course.to_string() })
+        }
+    }
+    return res;
+
+}
+
+
+fn parse(raw_contents: String, course: String) -> Vec<ParseRecipe>{
 
 
     let split_contents = raw_contents.lines()
@@ -134,7 +156,7 @@ fn parse(raw_contents: String) -> Vec<ParseRecipe>{
                 let name: String = parse_recipe_name(b.clone()).to_string();
                 let ingredients = parse_ingredients(b.clone()); 
                 let asdf = ParseRecipe{
-                    course: String::from("bread"),
+                    course: course.clone(),
                     name,
                     season,
                     page: parse_page_number(b.clone()),
@@ -183,9 +205,13 @@ fn parse_ingredients(b: String) -> Vec<String> {
 
 }
 
-fn parse_page_number(b: String) -> u16{
+fn parse_page_number(b: String) -> Option<u16>{
     let c = b.split(' ').last().unwrap();
-    c.parse::<u16>().expect("This should be a positive number!")
+    let d = c.parse::<u16>();
+    match d {
+        Ok(T) => return Some(T),
+        Err(T) => None
+    }
 
 }
 
