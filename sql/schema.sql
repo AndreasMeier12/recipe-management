@@ -5,8 +5,6 @@ CREATE TABLE IF NOT EXISTS Recipe(
     book INTEGER,
     recipe_name VARCHAR(255),
     recipe_url VARCHAR(255),
-    tried BIT
-
 )
 
 CREATE TABLE IF NOT EXISTS Course(

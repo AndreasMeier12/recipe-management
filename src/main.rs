@@ -1,5 +1,6 @@
 use std::path::{Path};
 use std::{fs, vec};
+use std::collections::HashMap;
 use std::ffi::OsStr;
 
 use parsetypes::ParseRecipe;
@@ -7,6 +8,18 @@ use parsetypes::Season;
 use crate::Season::Independent;
 mod parsetypes;
 use regex::Regex;
+
+use diesel::prelude::*;
+use dotenvy::dotenv;
+use std::env;
+
+use itertools::Itertools;
+use crate::models::{Book, Course, FullRecipe, InsertRecipe};
+
+
+pub mod models;
+pub mod schema;
+
 
 
 fn main() {
@@ -20,11 +33,43 @@ fn main() {
     .expect("Could not open file");
 
     let res =  parse(raw_contents);
-    for a in res  {
-        println!("{}", a)
-        
-    }
+    let books: Vec<Book> = res.iter().map(|x| x.book.as_str())
+        .unique()
+        .enumerate()
+        .map(|(i,x)| models::Book::new(Some(i as i32), x.to_string()))
+        .collect();
+    let book_title_to_id: HashMap<_, _> = books.iter().map(|x| (&x.book_name, x.book_id))
+        .collect();
+    let courses: Vec<Course> = res.iter().map(|x| x.course.as_str())
+        .unique()
+        .enumerate()
+        .map(|(i,x)| Course::new(Some(i as i32), x.to_string()))
+        .collect();
+    let courses_to_id: HashMap<_, _> = courses.iter()
+        .map(|x| (x.course_name.as_str(), x.course_id))
+        .collect();
+    let recipes: Vec<_> = res.iter()
+        .enumerate()
+        .map(|(i, x)| {
+            let bookd_id: Option<i32> = *book_title_to_id.get(&x.book).unwrap() ;
+            let season_id = Season::value(x.season) as i32;
+            let name = x.name.clone();
+            let course_id = courses_to_id.get(x.course.as_str()).unwrap().unwrap();
+            return models::InsertRecipe{course: course_id, book: bookd_id, recipe_name: name, primary_season: season_id}
+        })
+        .collect();
 
+    let con = &mut establish_connection();
+
+    use crate::schema::Recipe;
+    diesel::insert_into(Recipe::table)
+        .values(&recipes)
+        .execute(con)
+        .unwrap();
+
+
+
+    print!("{:?}", books)
 
 
 
@@ -71,7 +116,7 @@ fn parse(raw_contents: String) -> Vec<ParseRecipe>{
 
             }
             _ => {
-                panic!("this level should not exist");
+                panic!("this level should not exist\n \"{}\"", a);
             }
             
         }
@@ -109,4 +154,14 @@ fn parse_page_number(b: String) -> u16{
     let c = b.split(' ').last().unwrap();
     c.parse::<u16>().expect("This should be a positive number!")
 
+}
+
+
+
+pub fn establish_connection() -> SqliteConnection {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    SqliteConnection::establish(&database_url)
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
