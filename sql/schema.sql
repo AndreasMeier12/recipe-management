@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS Recipe(
     primary_season INTEGER NOT NULL,
     course INTEGER NOT NULL,
     book INTEGER,
+    page INTEGER,
     recipe_name VARCHAR(255),
     recipe_url VARCHAR(255),
 )

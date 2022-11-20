@@ -25,6 +25,7 @@ diesel::table! {
         recipe_name -> Nullable<Text>,
         recipe_url -> Nullable<Text>,
         created_at -> Nullable<Float>,
+        page -> Nullable<Integer>,
     }
 }
 

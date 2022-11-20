@@ -55,7 +55,8 @@ fn main() {
             let season_id = Season::value(x.season) as i32;
             let name = x.name.clone();
             let course_id = courses_to_id.get(x.course.as_str()).unwrap().unwrap();
-            return models::InsertRecipe{course: course_id, book: bookd_id, recipe_name: name, primary_season: season_id}
+            let page = Some(x.page  as i32);
+            return models::InsertRecipe{course: course_id, book: bookd_id, recipe_name: name, primary_season: season_id, page: page}
         })
         .collect();
 
@@ -131,12 +132,14 @@ fn parse(raw_contents: String) -> Vec<ParseRecipe>{
 
 
 fn parse_recipe_name(b: String) -> String{
-    if b.contains('[') {
+    let re = Regex::new(r"/\d+$/").unwrap();
+    let c = re.replace(b.as_str(), "");
+    if c.contains('[') {
         return b.split('[').next().expect("Should be here").trim().to_string();
     }
     let re = Regex::new(r"/\d+$/").unwrap();
 
-    return re.replace_all(&b[..], "").to_string();
+    return re.replace_all(&c[..], "").to_string();
 }
 
 fn parse_ingredients(b: String) -> Vec<String> {

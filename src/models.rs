@@ -8,13 +8,14 @@ pub struct FullRecipe {
     pub primary_season: i32,
     pub course: i32,
     pub book: Option<i32>,
+    pub page: Option<i32>,
     pub recipe_name: String,
     pub recipe_url: Option<String>,
 }
 
 impl FullRecipe {
-    pub fn new(recipe_id: Option<i32>, primary_season: i32, course: i32, book: Option<i32>, recipe_name: String, recipe_url: Option<String>) -> FullRecipe {
-        FullRecipe { recipe_id: recipe_id, recipe_name: recipe_name, book: book, course: course, primary_season: primary_season, recipe_url: recipe_url }
+    pub fn new(recipe_id: Option<i32>, primary_season: i32, course: i32, book: Option<i32>, recipe_name: String, recipe_url: Option<String>, page: Option<i32>) -> FullRecipe {
+        FullRecipe { recipe_id: recipe_id, recipe_name: recipe_name, book: book, course: course, primary_season: primary_season, recipe_url: recipe_url, page: page }
     }
 }
 
@@ -25,6 +26,7 @@ pub struct InsertRecipe {
     pub course: i32,
     pub book: Option<i32>,
     pub recipe_name: String,
+    pub page: Option<i32>
 }
 
 
