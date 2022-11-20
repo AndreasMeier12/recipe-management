@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 
 use parsetypes::ParseRecipe;
-use parsetypes::Season;
-use crate::Season::Independent;
+use parsetypes::ESeason;
+use crate::ESeason::Independent;
 mod parsetypes;
 use regex::Regex;
 
@@ -14,7 +14,7 @@ use dotenvy::dotenv;
 use std::env;
 
 use itertools::Itertools;
-use crate::models::{Book, Course, FullRecipe, InsertRecipe};
+use crate::models::{QBook, QCourse, FullRecipe, InsertRecipe, InsertCourse, InsertBook, InsertSeason};
 
 
 pub mod models;
@@ -33,17 +33,17 @@ fn main() {
     .expect("Could not open file");
 
     let res =  parse(raw_contents);
-    let books: Vec<Book> = res.iter().map(|x| x.book.as_str())
+    let books: Vec<InsertBook> = res.iter().map(|x| x.book.as_str())
         .unique()
         .enumerate()
-        .map(|(i,x)| models::Book::new(Some(i as i32), x.to_string()))
+        .map(|(i,x)| models::InsertBook::new(Some(i as i32), x.to_string()))
         .collect();
     let book_title_to_id: HashMap<_, _> = books.iter().map(|x| (&x.book_name, x.book_id))
         .collect();
-    let courses: Vec<Course> = res.iter().map(|x| x.course.as_str())
+    let courses: Vec<InsertCourse> = res.iter().map(|x| x.course.as_str())
         .unique()
         .enumerate()
-        .map(|(i,x)| Course::new(Some(i as i32), x.to_string()))
+        .map(|(i,x)| InsertCourse::new(Some(i as i32), x.to_string()))
         .collect();
     let courses_to_id: HashMap<_, _> = courses.iter()
         .map(|x| (x.course_name.as_str(), x.course_id))
@@ -52,13 +52,15 @@ fn main() {
         .enumerate()
         .map(|(i, x)| {
             let bookd_id: Option<i32> = *book_title_to_id.get(&x.book).unwrap() ;
-            let season_id = Season::value(x.season) as i32;
+            let season_id = ESeason::value(x.season) as i32;
             let name = x.name.clone();
             let course_id = courses_to_id.get(x.course.as_str()).unwrap().unwrap();
             let page = Some(x.page  as i32);
             return models::InsertRecipe{course: course_id, book: bookd_id, recipe_name: name, primary_season: season_id, page: page}
         })
         .collect();
+
+    let insert_seasons : Vec<InsertSeason> = build_seasons_records();
 
     let con = &mut establish_connection();
 
@@ -67,12 +69,40 @@ fn main() {
         .values(&recipes)
         .execute(con)
         .unwrap();
-
-
+    use crate::schema::Course;
+    diesel::insert_into(Course::table)
+        .values(&courses)
+        .execute(con)
+        .unwrap();
+        use crate::schema::Book;
+    diesel::insert_into(Book::table)
+        .values(&books)
+        .execute(con)
+        .unwrap();
+        use crate::schema::Season;
+    diesel::insert_into(Season::table)
+        .values(&insert_seasons)
+        .execute(con)
+        .unwrap();
 
     print!("{:?}", books)
 
 
+
+}
+
+fn build_seasons_records() -> Vec<InsertSeason>{
+    return vec![build_season_record(ESeason::Summer),
+                build_season_record(ESeason::Autumn),
+                build_season_record(ESeason::Winter),
+                build_season_record(ESeason::Spring),
+                build_season_record(ESeason::Independent),
+    ];
+
+
+}
+fn build_season_record(a: ESeason) -> InsertSeason{
+    return InsertSeason::new(Some(ESeason::value(a) as i32), ESeason::to_string(&a).to_string())
 
 }
 
@@ -86,7 +116,7 @@ fn parse(raw_contents: String) -> Vec<ParseRecipe>{
     .filter(|x| !x.replace('\t', "").is_empty());
     let mut res : Vec<ParseRecipe> = Vec::new();
     let mut book: String = String::from("");
-    let mut season: Season = Independent;
+    let mut season: ESeason = Independent;
 
     for a in split_contents{
         let depth = a.matches('\t').count();

@@ -3,7 +3,7 @@ use std::fmt;
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct ParseRecipe {
     pub course: String,
-    pub season: Season,
+    pub season: ESeason,
     pub book: String,
     pub name: String,
     pub page: u16,
@@ -18,7 +18,7 @@ impl fmt::Display for ParseRecipe{
 
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub enum Season{
+pub enum ESeason {
     Summer,
     Winter,
     Autumn,
@@ -26,25 +26,25 @@ pub enum Season{
     Independent,
 }
 
-impl Season {
-    pub fn value(a: Season) -> usize{
+impl ESeason {
+    pub fn value(a: ESeason) -> usize{
         match a {
-            Season::Summer =>1,
-            Season::Autumn => 2,
-            Season::Winter=>3,
-            Season::Spring => 4,
-            Season::Independent => 5,
+            ESeason::Summer =>1,
+            ESeason::Autumn => 2,
+            ESeason::Winter=>3,
+            ESeason::Spring => 4,
+            ESeason::Independent => 5,
 
         }
     }
 
-    pub fn to_string<'a>(seas: &'a Season) -> &'a str{
+    pub fn to_string<'a>(seas: &'a ESeason) -> &'a str{
         match seas {
-            Season::Summer => "Summer",
-            Season::Autumn => "Autumn",
-            Season::Winter=>"Winter",
-            Season::Spring => "Spring",
-            Season::Independent => "Independent",
+            ESeason::Summer => "Summer",
+            ESeason::Autumn => "Autumn",
+            ESeason::Winter=>"Winter",
+            ESeason::Spring => "Spring",
+            ESeason::Independent => "Independent",
 
         }
 
@@ -52,13 +52,13 @@ impl Season {
 
     }
 
-    pub fn from_string(a: &str) -> Option<Season>{
+    pub fn from_string(a: &str) -> Option<ESeason>{
         match a.to_lowercase().as_str() {
-            "summer" => Some(Season::Summer),
-                        "summer" => Some(Season::Summer),
-            "summer" => Some(Season::Summer),
-            "spring" => Some(Season::Spring),
-            "independent" => Some(Season::Independent),
+            "summer" => Some(ESeason::Summer),
+                        "summer" => Some(ESeason::Summer),
+            "summer" => Some(ESeason::Summer),
+            "spring" => Some(ESeason::Spring),
+            "independent" => Some(ESeason::Independent),
             _ => None
 
 
@@ -69,25 +69,25 @@ impl Season {
 }
 
 
-impl fmt::Display for Season {
+impl fmt::Display for ESeason {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Season::Summer => write!(f, "summer"),
-            Season::Spring => write!(f, "spring"),
-            Season::Autumn => write!(f, "autumn"),
-            Season::Winter => write!(f, "winter"),
-            Season::Independent => write!(f, "independent"),
+            ESeason::Summer => write!(f, "summer"),
+            ESeason::Spring => write!(f, "spring"),
+            ESeason::Autumn => write!(f, "autumn"),
+            ESeason::Winter => write!(f, "winter"),
+            ESeason::Independent => write!(f, "independent"),
         }
     }
 }
 
 
-pub fn match_season(a: &str) -> Season{
+pub fn match_season(a: &str) -> ESeason {
     match a.to_lowercase().as_str(){
-        "summer" => return Season::Summer,
-        "autumn" => return Season::Autumn,
-        "winter" => return Season::Winter,
-        "spring" => return Season::Spring,
-        _ => return Season::Independent,
+        "summer" => return ESeason::Summer,
+        "autumn" => return ESeason::Autumn,
+        "winter" => return ESeason::Winter,
+        "spring" => return ESeason::Spring,
+        _ => return ESeason::Independent,
     }
 }
