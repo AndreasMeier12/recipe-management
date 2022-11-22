@@ -17,6 +17,7 @@ use std::fs::read_to_string;
 use itertools::Itertools;
 use crate::models::{QBook, QCourse, FullRecipe, InsertRecipe, InsertCourse, InsertBook, InsertSeason};
 use crate::parsetypes::FileWithCourse;
+use diesel::result::Error;
 
 
 pub mod models;
@@ -62,25 +63,31 @@ fn main() {
     let con = &mut establish_connection();
 
     use crate::schema::Recipe;
+    let transaction_res = con.transaction::<_, Error, _>(|x|{
+
     diesel::insert_into(Recipe::table)
         .values(&recipes)
-        .execute(con)
+        .execute(x)
         .unwrap();
     use crate::schema::Course;
     diesel::insert_into(Course::table)
         .values(&courses)
-        .execute(con)
+        .execute(x)
         .unwrap();
         use crate::schema::Book;
     diesel::insert_into(Book::table)
         .values(&books)
-        .execute(con)
+        .execute(x)
         .unwrap();
         use crate::schema::Season;
     diesel::insert_into(Season::table)
         .values(&insert_seasons)
-        .execute(con)
+        .execute(x)
         .unwrap();
+        Ok(())
+
+    });
+
 
     print!("{:?}", books)
 
