@@ -1,3 +1,3 @@
-alter table Recipe
+alter table recipe
     add page integer;
 

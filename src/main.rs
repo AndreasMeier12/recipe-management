@@ -62,25 +62,25 @@ fn main() {
 
     let con = &mut establish_connection();
 
-    use crate::schema::Recipe;
+    use crate::schema::recipe;
     let transaction_res = con.transaction::<_, Error, _>(|x|{
 
-    diesel::insert_into(Recipe::table)
+    diesel::insert_into(recipe::table)
         .values(&recipes)
         .execute(x)
         .unwrap();
-    use crate::schema::Course;
-    diesel::insert_into(Course::table)
+    use crate::schema::course;
+    diesel::insert_into(course::table)
         .values(&courses)
         .execute(x)
         .unwrap();
-        use crate::schema::Book;
-    diesel::insert_into(Book::table)
+        use crate::schema::book;
+    diesel::insert_into(book::table)
         .values(&books)
         .execute(x)
         .unwrap();
-        use crate::schema::Season;
-    diesel::insert_into(Season::table)
+        use crate::schema::season;
+    diesel::insert_into(season::table)
         .values(&insert_seasons)
         .execute(x)
         .unwrap();

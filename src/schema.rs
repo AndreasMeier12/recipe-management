@@ -1,7 +1,7 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    Book (book_id) {
+    book (book_id) {
         book_id -> Nullable<Integer>,
         book_name -> Nullable<Text>,
         created_at -> Nullable<Float>,
@@ -9,7 +9,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    Course (course_id) {
+    course (course_id) {
         course_id -> Nullable<Integer>,
         course_name -> Nullable<Text>,
         created_at -> Nullable<Float>,
@@ -17,7 +17,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    Recipe (recipe_id) {
+    recipe (recipe_id) {
         recipe_id -> Nullable<Integer>,
         primary_season -> Integer,
         course -> Integer,
@@ -30,20 +30,20 @@ diesel::table! {
 }
 
 diesel::table! {
-    Season (season_id) {
+    season (season_id) {
         season_id -> Nullable<Integer>,
         tag_name -> Nullable<Text>,
         created_at -> Nullable<Float>,
     }
 }
 
-diesel::joinable!(Recipe -> Book (book));
-diesel::joinable!(Recipe -> Course (course));
-diesel::joinable!(Recipe -> Season (primary_season));
+diesel::joinable!(recipe -> book (book));
+diesel::joinable!(recipe -> course (course));
+diesel::joinable!(recipe -> season (primary_season));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    Book,
-    Course,
-    Recipe,
-    Season,
+    book,
+    course,
+    recipe,
+    season,
 );

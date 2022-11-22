@@ -1,1 +1,1 @@
-alter table Recipe DROP COLUMN page;
+alter table recipe DROP COLUMN page;

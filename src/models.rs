@@ -1,13 +1,13 @@
 use diesel::prelude::*;
-use super::schema::Recipe;
-use super::schema::Course;
-use super::schema::Season;
-use super::schema::Book;
+use super::schema::recipe;
+use super::schema::course;
+use super::schema::season;
+use super::schema::book;
 
 
 
 #[derive(Queryable)]
-#[diesel(table_name = Recipe)]
+#[diesel(table_name = recipe)]
 pub struct FullRecipe {
     pub recipe_id: Option<i32>,
     pub primary_season: i32,
@@ -25,7 +25,7 @@ impl FullRecipe {
 }
 
 #[derive(Insertable)]
-#[diesel(table_name = Recipe)]
+#[diesel(table_name = recipe)]
 pub struct InsertRecipe {
     pub primary_season: i32,
     pub course: i32,
@@ -36,7 +36,7 @@ pub struct InsertRecipe {
 
 
 #[derive(Queryable)]
-#[diesel(table_name = Course)]
+#[diesel(table_name = course)]
 pub struct QCourse {
     pub course_id: Option<i32>,
     pub course_name: String,
@@ -44,7 +44,7 @@ pub struct QCourse {
 
 
 #[derive(Insertable)]
-#[diesel(table_name = Course)]
+#[diesel(table_name = course)]
 pub struct InsertCourse {
     pub course_id: Option<i32>,
     pub course_name: String,
@@ -64,7 +64,7 @@ pub  fn new(course_id: Option<i32>, course_name: String) -> QCourse {
 
 
 #[derive(Queryable, Clone, Debug)]
-#[diesel(table_name = Book)]
+#[diesel(table_name = book)]
 pub struct QBook {
     pub book_id: Option<i32>,
     pub book_name: String,
@@ -78,7 +78,7 @@ impl QBook {
 
 
 #[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = Book)]
+#[diesel(table_name = book)]
 pub struct InsertBook {
     pub book_id: Option<i32>,
     pub book_name: String,
@@ -91,7 +91,7 @@ impl InsertBook {
 }
 
 #[derive(Queryable)]
-#[diesel(table_name = Season)]
+#[diesel(table_name = season)]
 pub struct QSeason {
     pub season_id: Option<i32>,
     pub name: String,
@@ -105,7 +105,7 @@ impl QSeason {
 }
 
 #[derive(Insertable)]
-#[diesel(table_name = Season)]
+#[diesel(table_name = season)]
 pub struct InsertSeason {
     pub season_id: Option<i32>,
     pub tag_name: String,
