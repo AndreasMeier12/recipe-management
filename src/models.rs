@@ -1,13 +1,12 @@
 use diesel::prelude::*;
 use itertools::Format;
-use super::schema::recipe;
-use super::schema::course;
-use super::schema::season;
+
 use super::schema::book;
-use super::schema::tag;
-use super::schema::recipe_tag;
-
-
+use super::schema::course;
+use super::schema::ingredient;
+use super::schema::recipe;
+use super::schema::recipe_ingredient;
+use super::schema::season;
 
 #[derive(Queryable)]
 #[diesel(table_name = recipe)]
@@ -122,38 +121,36 @@ impl InsertSeason {
 }
 
 #[derive(Queryable)]
-#[diesel(table_name = tag)]
-pub struct Tag {
+#[diesel(table_name = ingredient)]
+pub struct Ingredient {
     pub id: Option<i32>,
     pub name: String,
 }
 
 #[derive(Insertable)]
-#[diesel(table_name = tag)]
-pub struct InsertTag {
+#[diesel(table_name = ingredient)]
+pub struct InsertIngredient {
     pub id: Option<i32>,
     pub name: String,
 }
 
 #[derive(Queryable)]
-#[diesel(table_name = recipe_tag)]
-pub struct RecipeTag {
+#[diesel(table_name = recipe_ingredient)]
+pub struct RecipeIngredient {
     pub recipe_id: i32,
-    pub tag_id: i32,
+    pub ingredient_id: i32,
 }
 
 
 #[derive(Insertable)]
-#[diesel(table_name = recipe_tag)]
-pub struct InsertRecipeTag {
+#[diesel(table_name = recipe_ingredient)]
+pub struct InsertRecipeIngredient {
     pub recipe_id: i32,
-    pub tag_id: i32,
+    pub ingredient_id: i32,
 }
 
-impl InsertRecipeTag{
-    pub fn to_string(&self) -> String{
-        format!("recipe: {}, tag {}", self.recipe_id, self.tag_id)
+impl InsertRecipeIngredient {
+    pub fn to_string(&self) -> String {
+        format!("recipe: {}, tag {}", self.recipe_id, self.ingredient_id)
     }
-
-
 }

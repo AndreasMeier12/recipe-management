@@ -17,6 +17,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    ingredient (id) {
+        id -> Nullable<Integer>,
+        name -> Nullable<Text>,
+        created_at -> Nullable<Float>,
+    }
+}
+
+diesel::table! {
     recipe (recipe_id) {
         recipe_id -> Nullable<Integer>,
         primary_season -> Integer,
@@ -30,9 +38,9 @@ diesel::table! {
 }
 
 diesel::table! {
-    recipe_tag (recipe_id, tag_id) {
+    recipe_ingredient (recipe_id, ingredient_id) {
         recipe_id -> Integer,
-        tag_id -> Integer,
+        ingredient_id -> Integer,
         created_at -> Nullable<Float>,
     }
 }
@@ -45,24 +53,16 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    tag (id) {
-        id -> Nullable<Integer>,
-        name -> Nullable<Text>,
-        created_at -> Nullable<Float>,
-    }
-}
-
 diesel::joinable!(recipe -> book (book));
 diesel::joinable!(recipe -> course (course));
 diesel::joinable!(recipe -> season (primary_season));
-diesel::joinable!(recipe_tag -> tag (recipe_id));
+diesel::joinable!(recipe_ingredient -> ingredient (recipe_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     book,
     course,
+    ingredient,
     recipe,
-    recipe_tag,
+    recipe_ingredient,
     season,
-    tag,
 );

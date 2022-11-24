@@ -1,26 +1,24 @@
-use std::path::{Path};
 use std::{fs, vec};
 use std::collections::{HashMap, HashSet};
+use std::env;
 use std::ffi::OsStr;
-
-use parsetypes::ParseRecipe;
-use parsetypes::ESeason;
-use crate::ESeason::Independent;
-
-mod parsetypes;
-
-use regex::Regex;
+use std::fs::read_to_string;
+use std::path::Path;
 
 use diesel::prelude::*;
-use dotenvy::dotenv;
-use std::env;
-use std::fs::read_to_string;
-
-use itertools::Itertools;
-use crate::models::{QBook, QCourse, FullRecipe, InsertRecipe, InsertCourse, InsertBook, InsertSeason, InsertTag, InsertRecipeTag};
-use crate::parsetypes::FileWithCourse;
 use diesel::result::Error;
+use dotenvy::dotenv;
+use itertools::Itertools;
+use regex::Regex;
 
+use parsetypes::ESeason;
+use parsetypes::ParseRecipe;
+
+use crate::ESeason::Independent;
+use crate::models::{FullRecipe, InsertBook, InsertCourse, InsertIngredient, InsertRecipe, InsertRecipeIngredient, InsertSeason, QBook, QCourse};
+use crate::parsetypes::FileWithCourse;
+
+mod parsetypes;
 
 pub mod models;
 pub mod schema;
@@ -63,7 +61,7 @@ fn main() {
     let insert_seasons: Vec<InsertSeason> = build_seasons_records();
     let recipe_name_to_id: HashMap<_, _> = recipes.iter().map(|x| (&x.recipe_name, x.recipe_id)).collect();
 
-    let tag_stuff = build_tag_records(res,recipe_name_to_id);
+    let ingredient_infos = build_tag_records(res, recipe_name_to_id);
 
 /*    let diagnostic_out = tag_stuff.1.iter().map(|x| x.to_string()).join("\n");
     let out_path = Path::new("out_recipe_tags.txt");
@@ -92,14 +90,14 @@ fn main() {
             .values(&insert_seasons)
             .execute(x)
             .unwrap();
-        use crate::schema::tag;
-        diesel::insert_into(tag::table)
-            .values(&tag_stuff.0)
+        use crate::schema::ingredient;
+        diesel::insert_into(ingredient::table)
+            .values(&ingredient_infos.0)
             .execute(x)
             .unwrap();
-        use crate::schema::recipe_tag;
-        diesel::insert_into(recipe_tag::table)
-            .values(&tag_stuff.1)
+        use crate::schema::recipe_ingredient;
+        diesel::insert_into(recipe_ingredient::table)
+            .values(&ingredient_infos.1)
             .execute(x)
             .unwrap();
         Ok(())
@@ -109,17 +107,17 @@ fn main() {
     print!("{:?}", books)
 }
 
-fn build_tag_records(a: Vec<ParseRecipe>, recipe_name_to_id: HashMap<&String, Option<i32>>) -> (Vec<InsertTag>, Vec<InsertRecipeTag>) {
-    let tags: Vec<InsertTag> = a.iter()
+fn build_tag_records(a: Vec<ParseRecipe>, recipe_name_to_id: HashMap<&String, Option<i32>>) -> (Vec<InsertIngredient>, Vec<InsertRecipeIngredient>) {
+    let tags: Vec<InsertIngredient> = a.iter()
         .map(|x| &x.ingredients)
         .flatten()
         .unique()
         .enumerate()
-        .map(|(i, x)| InsertTag { name: x.to_string(), id: Some(i as i32) })
+        .map(|(i, x)| InsertIngredient { name: x.to_string(), id: Some(i as i32) })
         .collect();
     let tag_name_to_id: HashMap<_, _> = tags.iter().map(|x| (&x.name, x.id.unwrap()))
         .collect();
-    let recipe_tags = a.iter().map(|x| x.ingredients.iter().map(|y| InsertRecipeTag { tag_id: *tag_name_to_id.get(y).unwrap(), recipe_id: recipe_name_to_id.get(&x.name).unwrap().unwrap() }))
+    let recipe_tags = a.iter().map(|x| x.ingredients.iter().map(|y| InsertRecipeIngredient { ingredient_id: *tag_name_to_id.get(y).unwrap(), recipe_id: recipe_name_to_id.get(&x.name).unwrap().unwrap() }))
         .flatten().collect();
 
 
