@@ -1,8 +1,11 @@
 use diesel::prelude::*;
+use itertools::Format;
 use super::schema::recipe;
 use super::schema::course;
 use super::schema::season;
 use super::schema::book;
+use super::schema::tag;
+use super::schema::recipe_tag;
 
 
 
@@ -31,7 +34,8 @@ pub struct InsertRecipe {
     pub course: i32,
     pub book: Option<i32>,
     pub recipe_name: String,
-    pub page: Option<i32>
+    pub page: Option<i32>,
+    pub recipe_id: Option<i32>
 }
 
 
@@ -115,4 +119,41 @@ impl InsertSeason {
     pub fn new(season_id: Option<i32>, name: String) -> InsertSeason {
         InsertSeason { season_id: season_id, tag_name: name }
     }
+}
+
+#[derive(Queryable)]
+#[diesel(table_name = tag)]
+pub struct Tag {
+    pub id: Option<i32>,
+    pub name: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = tag)]
+pub struct InsertTag {
+    pub id: Option<i32>,
+    pub name: String,
+}
+
+#[derive(Queryable)]
+#[diesel(table_name = recipe_tag)]
+pub struct RecipeTag {
+    pub recipe_id: i32,
+    pub tag_id: i32,
+}
+
+
+#[derive(Insertable)]
+#[diesel(table_name = recipe_tag)]
+pub struct InsertRecipeTag {
+    pub recipe_id: i32,
+    pub tag_id: i32,
+}
+
+impl InsertRecipeTag{
+    pub fn to_string(&self) -> String{
+        format!("recipe: {}, tag {}", self.recipe_id, self.tag_id)
+    }
+
+
 }
