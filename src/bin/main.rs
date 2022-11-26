@@ -11,18 +11,12 @@ use dotenvy::dotenv;
 use itertools::Itertools;
 use regex::Regex;
 
-use parsetypes::ESeason;
-use parsetypes::ParseRecipe;
+use recipemanagement::{models, parsetypes};
+use recipemanagement::database::establish_connection;
+use recipemanagement::parsetypes::{ESeason, FileWithCourse, ParseRecipe};
+use recipemanagement::parsetypes::ESeason::Independent;
 
-use crate::ESeason::Independent;
 use crate::models::{FullRecipe, InsertBook, InsertCourse, InsertIngredient, InsertRecipe, InsertRecipeIngredient, InsertSeason, QBook, QCourse};
-use crate::parsetypes::FileWithCourse;
-
-mod parsetypes;
-
-pub mod models;
-pub mod schema;
-
 
 fn main() {
     let in_path_file = Path::new("path.txt");
@@ -69,33 +63,33 @@ fn main() {
 */
     let con = &mut establish_connection();
 
-    use crate::schema::recipe;
+    use recipemanagement::schema::recipe;
     let transaction_res = con.transaction::<_, Error, _>(|x| {
         diesel::insert_into(recipe::table)
             .values(&recipes)
             .execute(x)
             .unwrap();
-        use crate::schema::course;
+        use recipemanagement::schema::course;
         diesel::insert_into(course::table)
             .values(&courses)
             .execute(x)
             .unwrap();
-        use crate::schema::book;
+        use recipemanagement::schema::book;
         diesel::insert_into(book::table)
             .values(&books)
             .execute(x)
             .unwrap();
-        use crate::schema::season;
+        use recipemanagement::schema::season;
         diesel::insert_into(season::table)
             .values(&insert_seasons)
             .execute(x)
             .unwrap();
-        use crate::schema::ingredient;
+        use recipemanagement::schema::ingredient;
         diesel::insert_into(ingredient::table)
             .values(&ingredient_infos.0)
             .execute(x)
             .unwrap();
-        use crate::schema::recipe_ingredient;
+        use recipemanagement::schema::recipe_ingredient;
         diesel::insert_into(recipe_ingredient::table)
             .values(&ingredient_infos.1)
             .execute(x)
@@ -235,13 +229,4 @@ fn parse_page_number(b: String) -> Option<u16> {
         Ok(T) => return Some(T),
         Err(T) => None
     }
-}
-
-
-pub fn establish_connection() -> SqliteConnection {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    SqliteConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
