@@ -1,4 +1,5 @@
 use diesel::prelude::*;
+use diesel::sql_types::{Double, Float, Timestamp};
 use itertools::Format;
 
 use super::schema::book;
@@ -15,16 +16,13 @@ pub struct FullRecipe {
     pub primary_season: i32,
     pub course: i32,
     pub book: Option<i32>,
-    pub page: Option<i32>,
-    pub recipe_name: String,
+    pub recipe_name: Option<String>,
     pub recipe_url: Option<String>,
+    pub created_at: Option<f32>,
+    pub page: Option<i32>,
+
 }
 
-impl FullRecipe {
-    pub fn new(recipe_id: Option<i32>, primary_season: i32, course: i32, book: Option<i32>, recipe_name: String, recipe_url: Option<String>, page: Option<i32>) -> FullRecipe {
-        FullRecipe { recipe_id: recipe_id, recipe_name: recipe_name, book: book, course: course, primary_season: primary_season, recipe_url: recipe_url, page: page }
-    }
-}
 
 #[derive(Insertable)]
 #[diesel(table_name = recipe)]

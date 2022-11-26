@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 
 use axum::{Router, routing::get};
 use diesel::prelude::*;
+use itertools::Itertools;
 
 use recipemanagement::*;
 use recipemanagement::models::*;
@@ -29,6 +30,9 @@ async fn main() {
         .unwrap();
 }
 
-async fn handler() -> &'static str {
-    return "Hello, World";
+async fn handler() -> String {
+    let con = &mut database::establish_connection();
+    use recipemanagement::schema::recipe::dsl::*;
+    let res: Vec<FullRecipe> = recipe.limit(20).load::<FullRecipe>(con).unwrap();
+    return res.iter().map(|x| x.recipe_name.clone().unwrap()).join("\n");
 }
