@@ -9,13 +9,14 @@ use super::schema::recipe;
 use super::schema::recipe_ingredient;
 use super::schema::season;
 
-#[derive(Queryable)]
+#[derive(Queryable, Associations)]
 #[diesel(table_name = recipe)]
+#[belongs_to(parent = "QCourse", foreign_key = "course_id")]
 pub struct FullRecipe {
     pub recipe_id: Option<i32>,
     pub primary_season: i32,
-    pub course: i32,
-    pub book: Option<i32>,
+    pub course_id: i32,
+    pub book_id: Option<i32>,
     pub recipe_name: Option<String>,
     pub recipe_url: Option<String>,
     pub created_at: Option<f32>,
@@ -28,11 +29,11 @@ pub struct FullRecipe {
 #[diesel(table_name = recipe)]
 pub struct InsertRecipe {
     pub primary_season: i32,
-    pub course: i32,
-    pub book: Option<i32>,
+    pub course_id: i32,
+    pub book_id: Option<i32>,
     pub recipe_name: String,
     pub page: Option<i32>,
-    pub recipe_id: Option<i32>
+    pub recipe_id: Option<i32>,
 }
 
 
@@ -40,7 +41,8 @@ pub struct InsertRecipe {
 #[diesel(table_name = course)]
 pub struct QCourse {
     pub course_id: Option<i32>,
-    pub course_name: String,
+    pub course_name: Option<String>,
+    pub created_at: Option<f32>,
 }
 
 
@@ -57,11 +59,6 @@ pub  fn new(course_id: Option<i32>, course_name: String) -> InsertCourse {
     }
 }
 
-impl QCourse {
-pub  fn new(course_id: Option<i32>, course_name: String) -> QCourse {
-    QCourse {course_id: course_id, course_name: course_name}
-    }
-}
 
 
 #[derive(Queryable, Clone, Debug)]

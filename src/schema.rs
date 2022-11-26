@@ -28,8 +28,8 @@ diesel::table! {
     recipe (recipe_id) {
         recipe_id -> Nullable<Integer>,
         primary_season -> Integer,
-        course -> Integer,
-        book -> Nullable<Integer>,
+        course_id -> Integer,
+        book_id -> Nullable<Integer>,
         recipe_name -> Nullable<Text>,
         recipe_url -> Nullable<Text>,
         created_at -> Nullable<Float>,
@@ -53,8 +53,8 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(recipe -> book (book));
-diesel::joinable!(recipe -> course (course));
+diesel::joinable!(recipe -> book (book_id));
+diesel::joinable!(recipe -> course (course_id));
 diesel::joinable!(recipe -> season (primary_season));
 diesel::joinable!(recipe_ingredient -> ingredient (recipe_id));
 

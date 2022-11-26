@@ -48,7 +48,7 @@ fn main() {
             let name = x.name.clone();
             let course_id = courses_to_id.get(x.course.as_str()).unwrap().unwrap();
             let page = x.page.map(|x| x as i32);
-            return models::InsertRecipe { course: course_id, book: bookd_id, recipe_name: name, primary_season: season_id, page: page, recipe_id: Some(i as i32) };
+            return models::InsertRecipe { course_id: course_id, book_id: bookd_id, recipe_name: name, primary_season: season_id, page: page, recipe_id: Some(i as i32) };
         })
         .collect();
 
