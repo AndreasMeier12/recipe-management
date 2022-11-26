@@ -153,8 +153,8 @@ fn read_in(configPath: &Path) -> Vec<FileWithCourse> {
         let in_path_os = OsStr::new(&in_path);
         let path = Path::new(in_path_os);
 
-        let course = path.file_name().unwrap().to_str().unwrap();
-        if !seen_courses.contains(course) {
+        let course = path.file_name().unwrap().to_str().unwrap().replace(".txt", "").to_string();
+        if !seen_courses.contains(course.as_str()) {
             let raw_contents = fs::read_to_string(path)
                 .expect("Could not open file");
 
