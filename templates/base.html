@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{% block title %}{{ title }} - My Site{% endblock %}</title>
+    {% block head %}{% endblock %}
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-default">
+        <h1>Recipes</h1>
+        <ul>
+            {% for course in courses %}
+            <li><a href="/course/{{course.course_name.as_ref().unwrap()}}">
+                {{course.course_name.as_ref().unwrap()}} </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
+</header>
+<div id="content">
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

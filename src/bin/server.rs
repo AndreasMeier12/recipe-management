@@ -1,12 +1,14 @@
+use std::fmt::format;
+use std::net::SocketAddr;
+
 use axum::{Router, routing::get};
 use axum::extract::Path;
 use diesel::prelude::*;
 use itertools::Itertools;
+
 use recipemanagement::*;
 use recipemanagement::models::*;
 use recipemanagement::templates::*;
-use std::fmt::format;
-use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
@@ -34,9 +36,13 @@ async fn main() {
 
 async fn handler() -> String {
     let con = &mut database::establish_connection();
-    use recipemanagement::schema::recipe::dsl::*;
-    let res: Vec<FullRecipe> = recipe.limit(20).load::<FullRecipe>(con).unwrap();
-    return res.iter().map(|x| x.recipe_name.clone().unwrap()).join("\n");
+    use recipemanagement::schema::course::dsl::*;
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let course_refs: &Vec<QCourse> = &courses;
+    let hello = HelloTemplate { name: "world", courses: course_refs.clone(), title: "roflcopter" }; // instantiate your struct
+    let a = hello.get();
+
+    return a;
 }
 
 async fn handle_course(Path(path): Path<String>) -> String {
@@ -55,8 +61,6 @@ async fn handle_course(Path(path): Path<String>) -> String {
     let recipes: Vec<FullRecipe> = recipe.filter(recipemanagement::schema::recipe::course_id.eq(res)).load::<FullRecipe>(con).unwrap();
 
     let out = recipes.iter().map(|x| x.recipe_name.clone().unwrap()).join("\n");
-    let hello = HelloTemplate { name: "world" }; // instantiate your struct
-    println!("{}", hello.get()); // then render it.
 
     return out;
 }
