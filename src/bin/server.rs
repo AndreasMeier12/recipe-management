@@ -1,13 +1,12 @@
-use std::fmt::format;
-use std::net::SocketAddr;
-
 use axum::{Router, routing::get};
 use axum::extract::Path;
 use diesel::prelude::*;
 use itertools::Itertools;
-
 use recipemanagement::*;
 use recipemanagement::models::*;
+use recipemanagement::templates::*;
+use std::fmt::format;
+use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
@@ -56,6 +55,8 @@ async fn handle_course(Path(path): Path<String>) -> String {
     let recipes: Vec<FullRecipe> = recipe.filter(recipemanagement::schema::recipe::course_id.eq(res)).load::<FullRecipe>(con).unwrap();
 
     let out = recipes.iter().map(|x| x.recipe_name.clone().unwrap()).join("\n");
+    let hello = HelloTemplate { name: "world" }; // instantiate your struct
+    println!("{}", hello.get()); // then render it.
 
     return out;
 }
