@@ -65,14 +65,11 @@ pub  fn new(course_id: Option<i32>, course_name: String) -> InsertCourse {
 #[diesel(table_name = book)]
 pub struct QBook {
     pub book_id: Option<i32>,
-    pub book_name: String,
+    pub book_name: Option<String>,
+    pub created_at: Option<f32>,
+
 }
 
-impl QBook {
-    pub fn new(book_id: Option<i32>, name: String) -> QBook {
-        QBook { book_id: book_id, book_name: name }
-    }
-}
 
 
 #[derive(Insertable, Clone, Debug)]

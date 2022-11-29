@@ -1,4 +1,5 @@
-use std::fmt; 
+use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct ParseRecipe {
@@ -27,22 +28,29 @@ pub enum ESeason {
 }
 
 impl ESeason {
-    pub fn value(a: ESeason) -> usize{
+    pub fn value(a: ESeason) -> usize {
         match a {
-            ESeason::Summer =>1,
+            ESeason::Summer => 1,
             ESeason::Autumn => 2,
-            ESeason::Winter=>3,
+            ESeason::Winter => 3,
             ESeason::Spring => 4,
             ESeason::Independent => 5,
-
         }
     }
 
-    pub fn to_string<'a>(seas: &'a ESeason) -> &'a str{
+    pub fn value_rofl(&self) -> usize {
+        return ESeason::value(*self);
+    }
+
+    pub fn get_seasons() -> Vec<ESeason> {
+        return vec![ESeason::Summer, ESeason::Autumn, ESeason::Winter, ESeason::Spring, ESeason::Independent];
+    }
+
+    pub fn to_string<'a>(seas: &'a ESeason) -> &'a str {
         match seas {
             ESeason::Summer => "Summer",
             ESeason::Autumn => "Autumn",
-            ESeason::Winter=>"Winter",
+            ESeason::Winter => "Winter",
             ESeason::Spring => "Spring",
             ESeason::Independent => "Independent",
 
@@ -60,12 +68,12 @@ impl ESeason {
             "spring" => Some(ESeason::Spring),
             "independent" => Some(ESeason::Independent),
             _ => None
-
-
         }
-
     }
 
+    pub fn to_map() -> HashMap<usize, ESeason> {
+        return HashMap::from([(1, ESeason::Summer), (2, ESeason::Autumn), (3, ESeason::Winter), (4, ESeason::Spring), (5, ESeason::Independent)]);
+    }
 }
 
 
