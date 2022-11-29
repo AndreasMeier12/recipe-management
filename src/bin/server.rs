@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::fmt::format;
 use std::net::SocketAddr;
+use std::ops::Deref;
 
 use axum::{Router, routing::get};
 use axum::extract::Path;
@@ -8,6 +10,7 @@ use itertools::Itertools;
 
 use recipemanagement::*;
 use recipemanagement::models::*;
+use recipemanagement::parsetypes::ESeason;
 use recipemanagement::templates::*;
 
 #[tokio::main]
@@ -57,12 +60,28 @@ async fn handle_course(Path(path): Path<String>) -> String {
         .first()
         .map(|x| x.course_id)
         .unwrap().unwrap();
+
+    let asdf: &QCourse = reses.first().unwrap();
+    use recipemanagement::schema::recipe::dsl::*;
+    let a: Option<i32> = None;
+
+
+
     use recipemanagement::schema::recipe::dsl::*;
     let recipes: Vec<FullRecipe> = recipe.filter(recipemanagement::schema::recipe::course_id.eq(res)).load::<FullRecipe>(con).unwrap();
+    use recipemanagement::schema::book::dsl::*;
 
-    let out = recipes.iter().map(|x| x.recipe_name.clone().unwrap()).join("\n");
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    let id_to_book: HashMap<i32, QBook> = books.iter().map(|x| (x.book_id.unwrap(), x.clone())).collect();
+    let season_map = ESeason::to_map();
+    let recipes_per_book_season: HashMap<(usize, i32), Vec<&FullRecipe>> = recipes.iter()
+        .map(|x| ((x.primary_season as usize, x.book_id.unwrap()), x))
+        .into_group_map();
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let course_refs: &Vec<QCourse> = &courses;
 
-    return out;
+
+    return CourseTemplate { course_name: asdf.course_name.as_ref().unwrap().as_str(), seasons: ESeason::get_seasons(), recipes_per_book_season: recipes_per_book_season, books: &books, courses: course_refs }.get();
 }
 
 fn query_course() {}

@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use askama::Template;
 
 use crate::models::*;
+use crate::parsetypes::ESeason;
 
 // bring trait in scope
 
@@ -17,8 +20,27 @@ pub struct HelloTemplate<'a> {
 }
 
 
-
 impl<'a> HelloTemplate<'a> {
+    pub fn get(&self) -> String {
+        return self.render().unwrap();
+    }
+}
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "course.html")] // using the template in this path, relative
+// to the `templates` dir in the crate root
+pub struct CourseTemplate<'a> {
+    pub courses: &'a Vec<QCourse>,
+    pub books: &'a Vec<QBook>,
+    pub course_name: &'a str,
+    pub seasons: Vec<ESeason>,
+    pub recipes_per_book_season: HashMap<(usize, i32), Vec<&'a FullRecipe>>,
+
+    // in your template
+}
+
+
+impl<'a> CourseTemplate<'a> {
     pub fn get(&self) -> String {
         return self.render().unwrap();
     }
