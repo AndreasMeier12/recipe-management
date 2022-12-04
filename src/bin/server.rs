@@ -5,13 +5,14 @@ use std::ops::Deref;
 
 use axum::{Form, Router, routing::get};
 use axum::{body::Body, response::{Html, Json}};
-use axum::extract::Path;
+use axum::extract::{Path, Query};
 use axum::response::Redirect;
 use diesel::prelude::*;
 use itertools::Itertools;
 use serde::Deserialize;
 
 use recipemanagement::*;
+use recipemanagement::args::RecipePrefill;
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::templates::*;
@@ -92,7 +93,8 @@ async fn handle_course(Path(path): Path<String>) -> Html<String> {
     return Html(content);
 }
 
-async fn recipe_form() -> Html<String> {
+
+async fn recipe_form(prefill: Query<RecipePrefill>) -> Html<String> {
     let con = &mut database::establish_connection();
 
     use recipemanagement::schema::book::dsl::*;
@@ -104,7 +106,7 @@ async fn recipe_form() -> Html<String> {
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs }.get());
+    return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, prefill: prefill.0 }.get());
 }
 
 #[derive(Deserialize)]
@@ -125,13 +127,15 @@ async fn post_recipe(Form(form): Form<PostRecipe>) -> Redirect {
     let page = form.page.map(|x| x.parse::<i32>()).unwrap_or(Ok(0)).ok();
 
     let recipe = InsertRecipe { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page };
+
     diesel::insert_into(recipe::table)
         .values(vec![recipe])
         .execute(con)
         .unwrap();
+    let url = format!("/recipe/add?season={}&course={}&book={}", form.season, form.course, book_id.unwrap_or(0));
 
 
-    return Redirect::to("/recipe/add");
+    return Redirect::to(url.as_str());
 }
 
 

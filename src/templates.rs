@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use askama::Template;
 
+use crate::args::RecipePrefill;
 use crate::models::*;
 use crate::parsetypes::ESeason;
 
@@ -66,6 +67,7 @@ pub struct RecipeForm<'a> {
     pub courses: &'a Vec<QCourse>,
     pub books: &'a Vec<QBook>,
     pub seasons: Vec<ESeason>,
+    pub prefill: RecipePrefill,
 
 
     // in your template
