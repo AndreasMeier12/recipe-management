@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use std::ops::Deref;
 
 use axum::{Router, routing::get};
+use axum::{body::Body, response::{Html, Json}};
 use axum::extract::Path;
 use diesel::prelude::*;
 use itertools::Itertools;
@@ -22,7 +23,7 @@ async fn main() {
 
     // A closure or a function can be used as handler.
 
-    let app = Router::new().route("/", get(handler))
+    let app = Router::new().route("/", get(index_handler))
         .route("/course/:name", get(handle_course));
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
 
@@ -37,7 +38,7 @@ async fn main() {
         .unwrap();
 }
 
-async fn handler() -> String {
+async fn index_handler() -> Html<String> {
     let con = &mut database::establish_connection();
     use recipemanagement::schema::course::dsl::*;
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
@@ -45,10 +46,10 @@ async fn handler() -> String {
     let hello = HelloTemplate { name: "world", courses: course_refs.clone(), title: "roflcopter" }; // instantiate your struct
     let a = hello.get();
 
-    return a;
+    return Html(a);
 }
 
-async fn handle_course(Path(path): Path<String>) -> String {
+async fn handle_course(Path(path): Path<String>) -> Html<String> {
     let name = path.as_str();
     let con = &mut database::establish_connection();
     use recipemanagement::schema::course::dsl::*;
@@ -80,8 +81,9 @@ async fn handle_course(Path(path): Path<String>) -> String {
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
+    let content = CourseTemplate { course_name: asdf.course_name.as_ref().unwrap().as_str(), seasons: ESeason::get_seasons(), recipes_per_book_season: recipes_per_book_season, books: &books, courses: course_refs }.get();
 
-    return CourseTemplate { course_name: asdf.course_name.as_ref().unwrap().as_str(), seasons: ESeason::get_seasons(), recipes_per_book_season: recipes_per_book_season, books: &books, courses: course_refs }.get();
+    return Html(content);
 }
 
 fn query_course() {}

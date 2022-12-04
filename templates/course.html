@@ -1,15 +1,3 @@
-{% extends "base.html" %}
-
-
-{% block title %}Index{% endblock %}
-
-{% block head %}
-<style>
-</style>
-{% endblock %}
-
-
-{% block content %}
 
 {% for season in seasons %}
 <h1>{{season.to_string()}}</h1>
@@ -32,4 +20,3 @@
 {% endfor %}
 
 {% endfor %}
-{% endblock %}
