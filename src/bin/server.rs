@@ -3,11 +3,13 @@ use std::fmt::format;
 use std::net::SocketAddr;
 use std::ops::Deref;
 
-use axum::{Router, routing::get};
+use axum::{Form, Router, routing::get};
 use axum::{body::Body, response::{Html, Json}};
 use axum::extract::Path;
+use axum::response::Redirect;
 use diesel::prelude::*;
 use itertools::Itertools;
+use serde::Deserialize;
 
 use recipemanagement::*;
 use recipemanagement::models::*;
@@ -24,7 +26,8 @@ async fn main() {
     // A closure or a function can be used as handler.
 
     let app = Router::new().route("/", get(index_handler))
-        .route("/course/:name", get(handle_course));
+        .route("/course/:name", get(handle_course))
+        .route("/book/add", get(book_form).post(post_book));
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
 
     // Address that server will bind to.
@@ -84,6 +87,38 @@ async fn handle_course(Path(path): Path<String>) -> Html<String> {
     let content = CourseTemplate { course_name: asdf.course_name.as_ref().unwrap().as_str(), seasons: ESeason::get_seasons(), recipes_per_book_season: recipes_per_book_season, books: &books, courses: course_refs }.get();
 
     return Html(content);
+}
+
+async fn book_form() -> Html<String> {
+    return Html(BookForm {}.get())
+}
+
+#[derive(Deserialize)]
+struct PostBook {
+    booktext: String,
+}
+
+async fn post_book(Form(form): Form<PostBook>) -> Redirect {
+    let content = form;
+    let con = &mut database::establish_connection();
+    {
+        use recipemanagement::schema::book::dsl::*;
+
+        let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+        if books.iter().any(|x| x.book_name.as_ref().filter(|y| **y == content.booktext).is_some()) {
+            return Redirect::to("/recipe/add?val=error");
+        }
+    }
+    use recipemanagement::schema::book;
+    use crate::schema::book::book_name;
+
+    diesel::insert_into(book::table)
+        .values(book_name.eq(content.booktext))
+        .execute(con)
+        .unwrap();
+
+
+    return Redirect::to("/");
 }
 
 fn query_course() {}

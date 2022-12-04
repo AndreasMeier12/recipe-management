@@ -45,3 +45,17 @@ impl<'a> CourseTemplate<'a> {
         return self.render().unwrap();
     }
 }
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "add_book.html")] // using the template in this path, relative
+// to the `templates` dir in the crate root
+pub struct BookForm {
+    // in your template
+}
+
+
+impl<'a> BookForm {
+    pub fn get(&self) -> String {
+        return self.render().unwrap();
+    }
+}

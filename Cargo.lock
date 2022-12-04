@@ -551,6 +551,7 @@ dependencies = [
  "dotenvy",
  "itertools",
  "regex",
+ "serde",
  "tokio",
 ]
 
