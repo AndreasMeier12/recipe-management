@@ -28,7 +28,7 @@ async fn main() {
     let app = Router::new().route("/", get(index_handler))
         .route("/course/:name", get(handle_course))
         .route("/book/add", get(book_form).post(post_book))
-        .route("/recipe/add", get(recipe_form))
+        .route("/recipe/add", get(recipe_form).post(post_recipe))
 
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
@@ -107,6 +107,33 @@ async fn recipe_form() -> Html<String> {
     return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs }.get());
 }
 
+#[derive(Deserialize)]
+struct PostRecipe {
+    course: i32,
+    book: Option<String>,
+    season: i32,
+    name: String,
+    url: Option<String>,
+    page: Option<String>,
+
+}
+
+async fn post_recipe(Form(form): Form<PostRecipe>) -> Redirect {
+    let con = &mut database::establish_connection();
+    use recipemanagement::schema::recipe;
+    let book_id = form.book.map(|x| x.parse::<i32>()).unwrap_or(Ok(0)).ok();
+    let page = form.page.map(|x| x.parse::<i32>()).unwrap_or(Ok(0)).ok();
+
+    let recipe = InsertRecipe { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page };
+    diesel::insert_into(recipe::table)
+        .values(vec![recipe])
+        .execute(con)
+        .unwrap();
+
+
+    return Redirect::to("/recipe/add");
+}
+
 
 #[derive(Deserialize)]
 struct PostBook {
@@ -114,7 +141,7 @@ struct PostBook {
 }
 
 async fn book_form() -> Html<String> {
-    return Html(BookForm {}.get())
+    return Html(BookForm {}.get());
 }
 
 async fn post_book(Form(form): Form<PostBook>) -> Redirect {

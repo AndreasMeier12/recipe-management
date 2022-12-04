@@ -7,7 +7,7 @@
 <body>
 
 <form id="form" method="post">
-    <label for="name">Book name</label>
+    <label for="name">Name</label>
     <input id="name" name="name" required type="text">
     <select id="season" name="season" required>
         {% for season in seasons %}
@@ -18,12 +18,17 @@
     <label for="course">Course</label>
 
     <select id="course" name="course" required>
-        <option value="0">-</option>
         {% for course in courses %}
         <option value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}</option>
         {% endfor %}
     </select>
-
+    <label for="book">Book</label>
+    <select id="book" name="book">
+        <option value="0"></option>
+        {% for book in books%}
+        <option value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}</option>
+        {% endfor %}
+    </select>
 
     <label for="url">URL</label>
     <input id="url" name="url" type="text">
