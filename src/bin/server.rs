@@ -27,7 +27,10 @@ async fn main() {
 
     let app = Router::new().route("/", get(index_handler))
         .route("/course/:name", get(handle_course))
-        .route("/book/add", get(book_form).post(post_book));
+        .route("/book/add", get(book_form).post(post_book))
+        .route("/recipe/add", get(recipe_form))
+
+        ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
 
     // Address that server will bind to.
@@ -89,13 +92,29 @@ async fn handle_course(Path(path): Path<String>) -> Html<String> {
     return Html(content);
 }
 
-async fn book_form() -> Html<String> {
-    return Html(BookForm {}.get())
+async fn recipe_form() -> Html<String> {
+    let con = &mut database::establish_connection();
+
+    use recipemanagement::schema::book::dsl::*;
+
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    use recipemanagement::schema::course::dsl::*;
+
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let course_refs: &Vec<QCourse> = &courses;
+
+
+    return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs }.get());
 }
+
 
 #[derive(Deserialize)]
 struct PostBook {
     booktext: String,
+}
+
+async fn book_form() -> Html<String> {
+    return Html(BookForm {}.get())
 }
 
 async fn post_book(Form(form): Form<PostBook>) -> Redirect {

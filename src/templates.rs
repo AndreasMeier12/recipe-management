@@ -59,3 +59,21 @@ impl<'a> BookForm {
         return self.render().unwrap();
     }
 }
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "add_recipe.html")] // using the template in this path, relative
+pub struct RecipeForm<'a> {
+    pub courses: &'a Vec<QCourse>,
+    pub books: &'a Vec<QBook>,
+    pub seasons: Vec<ESeason>,
+
+
+    // in your template
+}
+
+
+impl<'a> RecipeForm<'a> {
+    pub fn get(&self) -> String {
+        return self.render().unwrap();
+    }
+}
