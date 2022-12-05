@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<form id="form" method="post">
+    <label for="name">Search</label>
+    <input id="name" name="name" required type="text">
+    <select id="season" name="season" required>
+        {% for season in seasons %}
+        <option value="{{season.value_rofl()}}">{{season.to_string()}}
+        </option>
+        {% endfor %}
+
+    </select>
+    <label for="course">Course</label>
+
+    <select id="course" name="course" required>
+        {% for course in courses %}
+        <option value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
+        </option>
+        {% endfor %}
+    </select>
+    <label for="book">Book</label>
+    <select id="book" name="book">
+        <option value="0"></option>
+        {% for book in books%}
+        <option value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
+        </option>
+        {% endfor %}
+    </select>
+    <input type="submit" value="form">
+</form>
+
+</body>
+</html>

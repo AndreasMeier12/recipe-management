@@ -11,8 +11,8 @@
     <input id="name" name="name" required type="text">
     <select id="season" name="season" required>
         {% for season in seasons %}
-        <option %} %} && endif if prefill.season.is_some() prefill.season.unwrap()== season.value_rofl() selected
-                value="{{season.value_rofl()}}" {% {%>{{season.to_string()}}
+        <option {% if prefill.season.is_some() && prefill.season.unwrap()== season.value_rofl() %} selected {% endif %}
+                value="{{season.value_rofl()}}">{{season.to_string()}}
         </option>
         {% endfor %}
 
@@ -21,8 +21,8 @@
 
     <select id="course" name="course" required>
         {% for course in courses %}
-        <option %} %} && course.course_id.unwrap() endif if prefill.course.is_some() prefill.course.unwrap()== selected
-                value="{{course.course_id.unwrap()}}" {% {%>{{course.course_name.as_ref().unwrap()}}
+        <option {% if prefill.course.is_some() && course.course_id.unwrap()  ==  prefill.course.unwrap() %} selected {% endif %}
+                value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
     </select>
@@ -30,8 +30,8 @@
     <select id="book" name="book">
         <option value="0"></option>
         {% for book in books%}
-        <option %} %} && book.book_id.unwrap() endif if prefill.book.is_some() prefill.book.unwrap()== selected
-                value="{{book.book_id.unwrap()}}" {% {%>{{book.book_name.as_ref().unwrap()}}
+        <option {% if prefill.book.is_some() && book.book_id.unwrap() ==  prefill.book.unwrap() %} selected {% endif %}
+                value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
     </select>
