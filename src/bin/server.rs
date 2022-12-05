@@ -219,7 +219,8 @@ async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String>{
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::book_id.eq(form.book.unwrap()))
     }
     if form.name.as_ref().filter(|x| **x != "").is_some() {
-        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::recipe_name.like(form.name.unwrap()))
+        let arg = format!("%{}%", form.name.unwrap());
+        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::recipe_name.like(arg))
     }
     let recipes = recipe_query.load::<FullRecipe>(con).unwrap();
 
