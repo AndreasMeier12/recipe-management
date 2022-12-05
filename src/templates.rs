@@ -74,7 +74,26 @@ pub struct RecipeForm<'a> {
 }
 
 
+
+
 impl<'a> RecipeForm<'a> {
+    pub fn get(&self) -> String {
+        return self.render().unwrap();
+    }
+}
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "search_form.html")] // using the template in this path, relative
+pub struct SearchForm<'a> {
+    pub courses: &'a Vec<QCourse>,
+    pub books: &'a Vec<QBook>,
+    pub seasons: Vec<ESeason>,
+    pub recipes: Option<Vec<FullRecipe>>
+
+    // in your template
+}
+
+impl<'a> SearchForm<'a> {
     pub fn get(&self) -> String {
         return self.render().unwrap();
     }

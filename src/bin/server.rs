@@ -12,9 +12,10 @@ use itertools::Itertools;
 use serde::Deserialize;
 
 use recipemanagement::*;
-use recipemanagement::args::RecipePrefill;
+use recipemanagement::args::{RecipePrefill, SearchPrefill};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
+use recipemanagement::schema::course::dsl::course;
 use recipemanagement::templates::*;
 
 #[tokio::main]
@@ -30,7 +31,7 @@ async fn main() {
         .route("/course/:name", get(handle_course))
         .route("/book/add", get(book_form).post(post_book))
         .route("/recipe/add", get(recipe_form).post(post_recipe))
-
+        .route("/search", get(search_form).post(search_result))
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
 
@@ -169,6 +170,65 @@ async fn post_book(Form(form): Form<PostBook>) -> Redirect {
 
 
     return Redirect::to("/");
+}
+
+#[derive(Deserialize)]
+struct SearchRecipe {
+    course: Option<i32>,
+    book: Option<i32>,
+    season: Option<i32>,
+    name: Option<String>,
+}
+
+async fn search_form() -> Html<String>{
+    let con = &mut database::establish_connection();
+
+    use recipemanagement::schema::book::dsl::*;
+
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    use recipemanagement::schema::course::dsl::*;
+
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let course_refs: &Vec<QCourse> = &courses;
+
+
+    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None }.get());
+
+}
+
+async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String>{
+        let con = &mut database::establish_connection();
+
+    use recipemanagement::schema::book::dsl::*;
+
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    use recipemanagement::schema::course::dsl::*;
+
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let course_refs: &Vec<QCourse> = &courses;
+
+        use recipemanagement::schema::recipe::dsl::*;
+    let mut recipe_query = recipe.into_boxed();
+    if form.course.as_ref().filter(|x| **x != 0).is_some() {
+        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::course_id.eq(form.course.unwrap()))
+    }
+    if form.season.as_ref().filter(|x| **x != 0).is_some()  {
+        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::primary_season.eq(form.season.unwrap()))
+    }
+    if form.book.as_ref().filter(|x| **x != 0).is_some() {
+        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::book_id.eq(form.book.unwrap()))
+    }
+    if form.name.as_ref().filter(|x| **x != "").is_some() {
+        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::recipe_name.like(form.name.unwrap()))
+    }
+    let recipes = recipe_query.load::<FullRecipe>(con).unwrap();
+
+
+
+    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes) }.get());
+
+
+
 }
 
 fn query_course() {}

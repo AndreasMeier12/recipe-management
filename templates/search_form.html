@@ -6,10 +6,11 @@
 </head>
 <body>
 
-<form id="form" method="post">
+<form id="form" method="post" target="/search">
     <label for="name">Search</label>
-    <input id="name" name="name" required type="text">
+    <input id="name" name="name" type="text">
     <select id="season" name="season" required>
+        <option value="0"></option>
         {% for season in seasons %}
         <option value="{{season.value_rofl()}}">{{season.to_string()}}
         </option>
@@ -18,7 +19,8 @@
     </select>
     <label for="course">Course</label>
 
-    <select id="course" name="course" required>
+    <select id="course" name="course">
+        <option value="0"></option>
         {% for course in courses %}
         <option value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
         </option>
@@ -34,6 +36,13 @@
     </select>
     <input type="submit" value="form">
 </form>
+{% if recipes.is_some() %}
+    <ul>
+        {% for recipe in recipes.as_ref().unwrap() %}
+        <li>{{recipe.recipe_name.as_ref().unwrap()}}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
 
 </body>
 </html>

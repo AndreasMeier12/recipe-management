@@ -6,3 +6,10 @@ pub struct RecipePrefill {
     pub book: Option<i32>,
     pub season: Option<usize>,
 }
+
+#[derive(Deserialize)]
+pub struct SearchPrefill {
+    pub course: Option<i32>,
+    pub book: Option<i32>,
+    pub season: Option<usize>,
+}
