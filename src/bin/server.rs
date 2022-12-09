@@ -89,7 +89,7 @@ async fn handle_course(Path(path): Path<String>) -> Html<String> {
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
-    let content = CourseTemplate { course_name: asdf.course_name.as_ref().unwrap().as_str(), seasons: ESeason::get_seasons(), recipes_per_book_season: recipes_per_book_season, books: &books, courses: course_refs }.get();
+    let content = CourseTemplate { course_name: asdf.course_name.as_ref().unwrap().as_str(), seasons: ESeason::get_seasons(), recipes_per_book_season: recipes_per_book_season, books: &books, courses: course_refs, title: name }.get();
 
     return Html(content);
 }
@@ -107,7 +107,7 @@ async fn recipe_form(prefill: Query<RecipePrefill>) -> Html<String> {
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, prefill: prefill.0 }.get());
+    return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, prefill: prefill.0, title: "Add Recipe" }.get());
 }
 
 #[derive(Deserialize)]
@@ -146,7 +146,13 @@ struct PostBook {
 }
 
 async fn book_form() -> Html<String> {
-    return Html(BookForm {}.get());
+    let con = &mut database::establish_connection();
+
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let course_refs: &Vec<QCourse> = &courses;
+
+
+    return Html(BookForm { courses: course_refs, title: "Add book" }.get());
 }
 
 async fn post_book(Form(form): Form<PostBook>) -> Redirect {
@@ -192,7 +198,7 @@ async fn search_form() -> Html<String>{
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None }.get());
+    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None, title: "Search" }.get());
 
 }
 
@@ -225,8 +231,7 @@ async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String>{
     let recipes = recipe_query.load::<FullRecipe>(con).unwrap();
 
 
-
-    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes) }.get());
+    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes), title: "Search" }.get());
 
 
 

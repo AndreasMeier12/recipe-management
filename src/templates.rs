@@ -36,6 +36,7 @@ pub struct CourseTemplate<'a> {
     pub course_name: &'a str,
     pub seasons: Vec<ESeason>,
     pub recipes_per_book_season: HashMap<(usize, i32), Vec<&'a FullRecipe>>,
+    pub title: &'a str,
 
     // in your template
 }
@@ -50,12 +51,15 @@ impl<'a> CourseTemplate<'a> {
 #[derive(Template)] // this will generate the code...
 #[template(path = "add_book.html")] // using the template in this path, relative
 // to the `templates` dir in the crate root
-pub struct BookForm {
+pub struct BookForm<'a> {
+    pub courses: &'a Vec<QCourse>,
+    pub title: &'a str,
+
     // in your template
 }
 
 
-impl<'a> BookForm {
+impl<'a> BookForm<'a> {
     pub fn get(&self) -> String {
         return self.render().unwrap();
     }
@@ -68,6 +72,7 @@ pub struct RecipeForm<'a> {
     pub books: &'a Vec<QBook>,
     pub seasons: Vec<ESeason>,
     pub prefill: RecipePrefill,
+    pub title: &'a str,
 
 
     // in your template
@@ -88,7 +93,8 @@ pub struct SearchForm<'a> {
     pub courses: &'a Vec<QCourse>,
     pub books: &'a Vec<QBook>,
     pub seasons: Vec<ESeason>,
-    pub recipes: Option<Vec<FullRecipe>>
+    pub recipes: Option<Vec<FullRecipe>>,
+    pub title: &'a str,
 
     // in your template
 }

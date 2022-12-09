@@ -1,11 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
 
+
+{% block head %}
+<style>
+</style>
+{% endblock %}
+
+
+{% block content %}
 <form id="form" method="post" target="/search">
     <label for="name">Search</label>
     <input id="name" name="name" type="text">
@@ -37,12 +40,10 @@
     <input type="submit" value="form">
 </form>
 {% if recipes.is_some() %}
-    <ul>
-        {% for recipe in recipes.as_ref().unwrap() %}
-        <li>{{recipe.recipe_name.as_ref().unwrap()}}</li>
-        {% endfor %}
-    </ul>
+<ul>
+    {% for recipe in recipes.as_ref().unwrap() %}
+    <li>{{recipe.recipe_name.as_ref().unwrap()}}</li>
+    {% endfor %}
+</ul>
 {% endif %}
-
-</body>
-</html>
+{% endblock %}

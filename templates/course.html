@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+
+
+{% block content%}
 {% for season in seasons %}
 <h1>{{season.to_string()}}</h1>
 {% for book in books %}
@@ -20,3 +24,4 @@
 {% endfor %}
 
 {% endfor %}
+{% endblock %}
