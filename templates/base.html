@@ -3,25 +3,126 @@
 <head>
     <title>{% block title %}{{ title }} - My Site{% endblock %}</title>
     {% block head %}{% endblock %}
+    <style>
+        .navbar {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            width: 80%
+        }
+
+        body {
+            background-color: #212121;
+            color: #969696;
+            margin-top: 80px;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+
+        }
+
+        header * {
+            display: inline;
+        }
+
+        .content {
+            padding: 8px;
+            width: 80%;
+            margin: auto;
+            box-sizing: border-box;
+
+
+        }
+
+        input {
+            width: 50%;
+            border: beige solid 1px;
+            background: lightgray;
+        }
+
+        select {
+            width: 50%;
+            border: beige solid 1px;
+            background: lightgray;
+
+        }
+
+        option {
+            background-color: red;
+            border: #212121 solid 1px;
+
+        }
+
+        .my-btn {
+            background-color: gray;
+            color: lightgray;
+
+            padding: 15px 25px;
+            text-decoration: none;
+        }
+
+        .submit-small {
+            width: 25%;
+        }
+
+        .deco {
+            border: 2px solid #D79334;
+            position: relative;
+        }
+
+        .deco:before, .deco:after {
+            border: 1px solid #D79334;
+            content: "";
+            position: absolute;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+
+        .hline-deco {
+            width: 80%;
+            text-align: center;
+            border: none;
+            border-top: thin double #D79334;
+            color: #D79334;
+
+        }
+
+        .hline-deco:after {
+            content: " ";
+            display: inline-block;
+            position: relative;
+
+        }
+
+
+    </style>
 </head>
 <body>
 <header>
     <nav class="navbar navbar-default">
         <h1>Recipes</h1>
-        <ul>
+        <ul class="">
+
             {% for course in courses %}
-            <li><a href="/course/{{course.course_name.as_ref().unwrap()}}">
+            <li><a class="my-btn" href="/course/{{course.course_name.as_ref().unwrap()}}">
                 {{course.course_name.as_ref().unwrap()}} </a>
             </li>
+
             {% endfor %}
-            <li><a href="/book/add">Add recipe</a></li>
-            <li><a href="/recipe/add">Add book</a></li>
-            <li><a href="/search">Search</a></li>
+            <li><a class="my-btn" href="/book/add">Add recipe</a></li>
+            <li><a class="my-btn" href="/recipe/add">Add book</a></li>
+            <li><a class="my-btn" href="/search">Search</a></li>
 
         </ul>
     </nav>
 </header>
-<div id="content">
+<div class="content deco" id="content">
     {% block content %}{% endblock %}
 </div>
 </body>
