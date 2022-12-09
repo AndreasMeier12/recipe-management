@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::format;
 use std::net::SocketAddr;
 use std::ops::Deref;
@@ -7,7 +7,10 @@ use axum::{Form, Router, routing::get};
 use axum::{body::Body, response::{Html, Json}};
 use axum::extract::{Path, Query};
 use axum::response::Redirect;
+use diesel::dsl::sql;
 use diesel::prelude::*;
+use diesel::sql_query;
+use diesel::sql_types::BoolOrNullableBool;
 use itertools::Itertools;
 use serde::Deserialize;
 
@@ -218,23 +221,36 @@ async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String>{
     if form.course.as_ref().filter(|x| **x != 0).is_some() {
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::course_id.eq(form.course.unwrap()))
     }
-    if form.season.as_ref().filter(|x| **x != 0).is_some()  {
+    if form.season.as_ref().filter(|x| **x != 0).is_some() {
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::primary_season.eq(form.season.unwrap()))
     }
     if form.book.as_ref().filter(|x| **x != 0).is_some() {
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::book_id.eq(form.book.unwrap()))
     }
-    if form.name.as_ref().filter(|x| **x != "").is_some() {
-        let arg = format!("%{}%", form.name.unwrap());
+
+    let has_name = form.name.as_ref().filter(|x| **x != "").is_some();
+
+    if has_name {
+        let arg = format!("%{}%", form.name.as_ref().unwrap());
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::recipe_name.like(arg))
     }
-    let recipes = recipe_query.load::<FullRecipe>(con).unwrap();
+    let mut recipes = recipe_query.load::<FullRecipe>(con).unwrap();
+    if has_name {
+        let sql_string = format!("SELECT r.*
+FROM ingredient
+         INNER JOIN recipe_ingredient ri on ingredient.id = ri.ingredient_id
+         INNER JOIN recipe r on r.recipe_id = ri.recipe_id
+WHERE name LIKE '{}'", form.name.as_ref().unwrap());
+
+        let moar_recipes = sql_query(sql_string)
+            .load::<FullRecipe>(con);
+        if moar_recipes.is_ok() {
+            recipes.extend(moar_recipes.unwrap())
+        }
+    }
 
 
     return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes), title: "Search" }.get());
-
-
-
 }
 
 fn query_course() {}

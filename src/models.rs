@@ -9,7 +9,7 @@ use super::schema::recipe;
 use super::schema::recipe_ingredient;
 use super::schema::season;
 
-#[derive(Queryable, Associations)]
+#[derive(Queryable, Associations, QueryableByName)]
 #[diesel(table_name = recipe)]
 #[belongs_to(parent = "QCourse", foreign_key = "course_id")]
 pub struct FullRecipe {
@@ -116,7 +116,9 @@ impl InsertSeason {
 #[diesel(table_name = ingredient)]
 pub struct Ingredient {
     pub id: Option<i32>,
-    pub name: String,
+    pub name: Option<String>,
+    pub created_at: Option<f32>,
+
 }
 
 #[derive(Insertable)]
@@ -131,6 +133,8 @@ pub struct InsertIngredient {
 pub struct RecipeIngredient {
     pub recipe_id: i32,
     pub ingredient_id: i32,
+    pub created_at: Option<f32>,
+
 }
 
 
