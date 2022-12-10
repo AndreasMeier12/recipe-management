@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form method="put">
+    <label for="name">Name</label>
+    <input required name="name" type="text" value="{{recipe.recipe_name.as_ref().unwrap()}}">
+
+    <select id="season" name="season" required>
+        {% for season in seasons %}
+        <option {% if prefill_season== season.value_rofl() %} selected {% endif %}
+                value="{{season.value_rofl()}}">{{season.to_string()}}
+        </option>
+        {% endfor %}
+
+    </select>
+    <label for="course">Course</label>
+
+    <select id="course" name="course" required>
+        {% for course in courses %}
+        <option {% if recipe.course_id== course.course_id.unwrap() %} selected {% endif %}
+                value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
+        </option>
+        {% endfor %}
+    </select>
+
+    <label for="book">Book</label>
+    <select id="book" name="book">
+        <option value="0"></option>
+        {% for book in books%}
+        <option {% if recipe.book_id.as_ref().is_some() && book.book_id.as_ref().unwrap()==
+                recipe.book_id.as_ref().unwrap() %} selected {% endif %}
+                value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
+        </option>
+        {% endfor %}
+    </select>
+
+
+    <label for="ingredients">Ingredients</label>
+    <textarea name="ingredients">{{ingredients}}</textarea>
+
+</form>
+
+
+{% endblock %}

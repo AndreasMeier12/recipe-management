@@ -113,7 +113,7 @@ impl InsertSeason {
     }
 }
 
-#[derive(Queryable)]
+#[derive(Queryable, QueryableByName)]
 #[diesel(table_name = ingredient)]
 pub struct Ingredient {
     pub id: Option<i32>,

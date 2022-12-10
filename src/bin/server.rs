@@ -13,7 +13,7 @@ use argon2::{
 use axum::{Extension, Form, Router, routing::get};
 use axum::{body::Body, response::{Html, Json}};
 use axum::extract::{Path, Query};
-use axum::response::{Redirect, Response};
+use axum::response::{IntoResponse, Redirect, Response};
 use axum_sessions::{async_session::MemoryStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
 use diesel::dsl::sql;
 use diesel::prelude::*;
@@ -48,6 +48,8 @@ async fn main() {
         .route("/recipe/add", get(recipe_form).post(post_recipe))
         .route("/search", get(search_form).post(search_result))
         .route("/login", get(login_page).post(my_login))
+        .route("/recipe/edit/:id", get(edit_recipe))
+
         .layer(session_layer)
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
@@ -245,6 +247,11 @@ async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String>{
 
     let has_name = form.name.as_ref().filter(|x| **x != "").is_some();
 
+    use recipemanagement::schema::book::dsl::*;
+
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+
+
     if has_name {
         let arg = format!("%{}%", form.name.as_ref().unwrap());
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::recipe_name.like(arg))
@@ -304,6 +311,54 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
 
     return Redirect::to("/");
 }
+
+async fn edit_recipe(session: ReadableSession, Path(path): Path<i32>) -> Html<String> {
+    /*    if  session.get::<i32>("user_id").is_none(){
+            return Html("Forbidden".to_string());
+        }*/
+    use recipemanagement::schema::recipe::dsl::*;
+    let con = &mut database::establish_connection();
+
+    let query = recipe
+        .filter(recipe_id.eq(path))
+        .load::<FullRecipe>(con)
+        .unwrap();
+
+    let das_recipe = query
+        .first();
+
+    if das_recipe.is_none() {
+        return Html("404'd".to_string());
+    }
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    use recipemanagement::schema::book::dsl::*;
+
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+
+
+    let ingredient_query_sql = format!("
+SELECT i.*
+FROM recipe_ingredient INNER JOIN ingredient i on i.id = recipe_ingredient.ingredient_id
+WHERE recipe_id={}", path);
+    let ingredients = sql_query(ingredient_query_sql)
+        .load::<Ingredient>(con)
+        .unwrap();
+    let ingredient_prefill = ingredients.iter().map(|x| x.name.as_ref().unwrap()).join("\n");
+    let prefill_season = das_recipe.as_ref().unwrap().primary_season as usize;
+
+
+    return Html(RecipeEditForm {
+        courses: &courses,
+        recipe: das_recipe.as_ref().unwrap(),
+        ingredients: ingredient_prefill,
+        title: "Edit recipe",
+        books: &books,
+        seasons: ESeason::get_seasons(),
+        prefill_season: prefill_season,
+    }.get());
+}
+
+pub struct RecipeEditQuery {}
 
 
 fn query_course() {}

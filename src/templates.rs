@@ -119,3 +119,24 @@ impl<'a> LoginPage<'a> {
         return self.render().unwrap();
     }
 }
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "recipe_edit_form.html")] // using the template in this path, relative
+pub struct RecipeEditForm<'a> {
+    pub courses: &'a Vec<QCourse>,
+    pub recipe: &'a FullRecipe,
+    pub ingredients: String,
+    pub title: &'a str,
+    pub books: &'a Vec<QBook>,
+    pub seasons: Vec<ESeason>,
+    pub prefill_season: usize,
+
+    // in your template
+}
+
+
+impl<'a> RecipeEditForm<'a> {
+    pub fn get(&self) -> String {
+        return self.render().unwrap();
+    }
+}
