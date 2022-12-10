@@ -3,15 +3,24 @@ use std::fmt::format;
 use std::net::SocketAddr;
 use std::ops::Deref;
 
-use axum::{Form, Router, routing::get};
+use argon2::{
+    Argon2,
+    password_hash::{
+        PasswordHash,
+        PasswordHasher, PasswordVerifier, rand_core::OsRng, SaltString,
+    },
+};
+use axum::{Extension, Form, Router, routing::get};
 use axum::{body::Body, response::{Html, Json}};
 use axum::extract::{Path, Query};
-use axum::response::Redirect;
+use axum::response::{Redirect, Response};
+use axum_sessions::{async_session::MemoryStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
 use diesel::dsl::sql;
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::BoolOrNullableBool;
 use itertools::Itertools;
+use rand::Rng;
 use serde::Deserialize;
 
 use recipemanagement::*;
@@ -29,14 +38,20 @@ async fn main() {
     // `axum::response::IntoResponse`.
 
     // A closure or a function can be used as handler.
+    let store = MemoryStore::new();
+    let secret = rand::thread_rng().gen::<[u8; 128]>();
+    let session_layer = SessionLayer::new(store, &secret);
 
     let app = Router::new().route("/", get(index_handler))
         .route("/course/:name", get(handle_course))
         .route("/book/add", get(book_form).post(post_book))
         .route("/recipe/add", get(recipe_form).post(post_recipe))
         .route("/search", get(search_form).post(search_result))
+        .route("/login", get(login_page).post(my_login))
+        .layer(session_layer)
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
+
 
     // Address that server will bind to.
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -252,6 +267,44 @@ WHERE name LIKE '{}'", form.name.as_ref().unwrap());
 
     return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes), title: "Search" }.get());
 }
+
+async fn login_page() -> Html<String> {
+    let con = &mut database::establish_connection();
+
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    return Html(LoginPage { courses: &courses, title: "Login" }.get())
+}
+
+#[derive(Deserialize)]
+struct Login {
+    email: String,
+    password: String,
+}
+
+async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redirect { //
+
+    let con = &mut database::establish_connection();
+
+    let sql_string = format!("SELECT * FROM user WHERE email='{}'", form.email);
+    let temp_user = sql_query(sql_string)
+        .load::<User>(con)
+        .unwrap();
+    let maybe_user = temp_user.first();
+    if maybe_user.as_ref().is_none() {
+        return Redirect::to("/search");
+    }
+
+    let parsed_hash = PasswordHash::new(maybe_user.unwrap().pw_hash.as_str()).ok().unwrap();
+    let verif = Argon2::default().verify_password(form.password.as_bytes(), &parsed_hash);
+
+    if verif.is_ok() {
+        session.insert("user_id", maybe_user.as_ref().unwrap().id.unwrap());
+    }
+
+
+    return Redirect::to("/");
+}
+
 
 fn query_course() {}
 

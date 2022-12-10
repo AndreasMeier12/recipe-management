@@ -8,6 +8,7 @@ use super::schema::ingredient;
 use super::schema::recipe;
 use super::schema::recipe_ingredient;
 use super::schema::season;
+use super::schema::user;
 
 #[derive(Queryable, Associations, QueryableByName)]
 #[diesel(table_name = recipe)]
@@ -149,4 +150,13 @@ impl InsertRecipeIngredient {
     pub fn to_string(&self) -> String {
         format!("recipe: {}, tag {}", self.recipe_id, self.ingredient_id)
     }
+}
+
+#[derive(Queryable, QueryableByName)]
+#[diesel(table_name = user)]
+pub struct User {
+    pub id: Option<i32>,
+    pub email: String,
+    pub pw_hash: String,
+    pub created_at: Option<f32>,
 }

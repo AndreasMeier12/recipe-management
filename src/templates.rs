@@ -104,3 +104,18 @@ impl<'a> SearchForm<'a> {
         return self.render().unwrap();
     }
 }
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "login.html")] // using the template in this path, relative
+pub struct LoginPage<'a> {
+    pub courses: &'a Vec<QCourse>,
+    pub title: &'a str,
+    // in your template
+}
+
+
+impl<'a> LoginPage<'a> {
+    pub fn get(&self) -> String {
+        return self.render().unwrap();
+    }
+}
