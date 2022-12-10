@@ -38,6 +38,19 @@ pub struct InsertRecipe {
 }
 
 
+#[derive(Insertable)]
+#[diesel(table_name = recipe)]
+pub struct FullInsertRecipe {
+    pub recipe_id: Option<i32>,
+    pub primary_season: i32,
+    pub course_id: i32,
+    pub book_id: Option<i32>,
+    pub recipe_name: Option<String>,
+    pub recipe_url: Option<String>,
+    pub created_at: Option<f32>,
+    pub page: Option<i32>,
+}
+
 #[derive(Queryable)]
 #[diesel(table_name = course)]
 pub struct QCourse {

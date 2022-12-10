@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<form method="put">
+<form method="post">
     <label for="name">Name</label>
     <input required name="name" type="text" value="{{recipe.recipe_name.as_ref().unwrap()}}">
 
@@ -34,10 +34,15 @@
         {% endfor %}
     </select>
 
+    <label for="page">Page</label>
+    <input type="number" name="page" {% if recipe.page.as_ref().is_some() %} value="recipe.page.as_ref().unwrap()" {%
+           endif %}>
+
 
     <label for="ingredients">Ingredients</label>
     <textarea name="ingredients">{{ingredients}}</textarea>
 
+    <input type="submit" value="edit">
 </form>
 
 

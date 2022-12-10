@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::RandomState;
 use std::fmt::format;
 use std::net::SocketAddr;
 use std::ops::Deref;
@@ -15,8 +16,10 @@ use axum::{body::Body, response::{Html, Json}};
 use axum::extract::{Path, Query};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum_sessions::{async_session::MemoryStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
-use diesel::dsl::sql;
+use axum_sessions::async_session::blake3::IncrementCounter::No;
+use diesel::dsl::{max, sql};
 use diesel::prelude::*;
+use diesel::result::Error;
 use diesel::sql_query;
 use diesel::sql_types::BoolOrNullableBool;
 use itertools::Itertools;
@@ -28,6 +31,8 @@ use recipemanagement::args::{RecipePrefill, SearchPrefill};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::schema::course::dsl::course;
+use recipemanagement::schema::ingredient::dsl::ingredient;
+use recipemanagement::schema::recipe::primary_season;
 use recipemanagement::templates::*;
 
 #[tokio::main]
@@ -48,7 +53,7 @@ async fn main() {
         .route("/recipe/add", get(recipe_form).post(post_recipe))
         .route("/search", get(search_form).post(search_result))
         .route("/login", get(login_page).post(my_login))
-        .route("/recipe/edit/:id", get(edit_recipe))
+        .route("/recipe/edit/:id", get(edit_recipe_form).post(put_recipe))
 
         .layer(session_layer)
         ;
@@ -206,7 +211,7 @@ struct SearchRecipe {
     name: Option<String>,
 }
 
-async fn search_form() -> Html<String>{
+async fn search_form() -> Html<String> {
     let con = &mut database::establish_connection();
 
     use recipemanagement::schema::book::dsl::*;
@@ -219,11 +224,10 @@ async fn search_form() -> Html<String>{
 
 
     return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None, title: "Search" }.get());
-
 }
 
-async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String>{
-        let con = &mut database::establish_connection();
+async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String> {
+    let con = &mut database::establish_connection();
 
     use recipemanagement::schema::book::dsl::*;
 
@@ -233,7 +237,7 @@ async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String>{
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
-        use recipemanagement::schema::recipe::dsl::*;
+    use recipemanagement::schema::recipe::dsl::*;
     let mut recipe_query = recipe.into_boxed();
     if form.course.as_ref().filter(|x| **x != 0).is_some() {
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::course_id.eq(form.course.unwrap()))
@@ -279,7 +283,7 @@ async fn login_page() -> Html<String> {
     let con = &mut database::establish_connection();
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
-    return Html(LoginPage { courses: &courses, title: "Login" }.get())
+    return Html(LoginPage { courses: &courses, title: "Login" }.get());
 }
 
 #[derive(Deserialize)]
@@ -312,7 +316,7 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
     return Redirect::to("/");
 }
 
-async fn edit_recipe(session: ReadableSession, Path(path): Path<i32>) -> Html<String> {
+async fn edit_recipe_form(session: ReadableSession, Path(path): Path<i32>) -> Html<String> {
     /*    if  session.get::<i32>("user_id").is_none(){
             return Html("Forbidden".to_string());
         }*/
@@ -356,6 +360,135 @@ WHERE recipe_id={}", path);
         seasons: ESeason::get_seasons(),
         prefill_season: prefill_season,
     }.get());
+}
+
+#[derive(Deserialize)]
+struct PutRecipe {
+    name: String,
+    book: Option<i32>,
+    course: i32,
+    season: i32,
+    ingredients: Option<String>,
+    page: Option<String>,
+}
+
+async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
+    let con = &mut database::establish_connection();
+
+    let page_res = form.page.map(|x| x.parse::<i32>()).and_then(|x| x.ok());
+
+
+    let transaction_res = con.transaction::<_, Error, _>(|x| {
+        use recipemanagement::schema::recipe::dsl::*;
+
+        let old_recipe_query = recipe.filter(recipe_id.eq(path))
+            .load::<FullRecipe>(x)
+            .unwrap();
+        let old_recipe = old_recipe_query.first().unwrap();
+
+
+        let edit_recipe = FullInsertRecipe {
+            recipe_id: Some(path),
+            recipe_url: None,
+            recipe_name: Some(form.name),
+            primary_season: form.season,
+            course_id: form.course,
+            created_at: old_recipe.created_at,
+            page: page_res,
+            book_id: form.book,
+        };
+
+        diesel::replace_into(recipe)
+            .values(&vec![edit_recipe])
+            .execute(x);
+        if form.ingredients.is_some() {
+            use recipemanagement::schema::ingredient::dsl::*;
+            let ingredient_names: Vec<String> = form.ingredients.unwrap().trim()
+                .split("\n")
+                .map(|x| x.trim())
+                .map(|x| x.to_string())
+                .collect();
+
+
+            let existing_ingredients = ingredient
+                .load::<Ingredient>(x)
+                .unwrap();
+
+            let ingredient_to_id: HashMap<String, i32> = existing_ingredients.iter().map(|x| (x.name.as_ref().clone().unwrap().to_string(), *x.id.as_ref().unwrap()))
+                .collect();
+            let id_to_ingredient: HashMap<i32, String> = existing_ingredients.iter().map(|x| (*x.id.as_ref().unwrap(), x.name.as_ref().unwrap().to_string()))
+                .collect();
+            let existing_names: HashSet<String, RandomState> = HashSet::from_iter(existing_ingredients.iter().map(|x| x.name.as_ref().unwrap().to_string()));
+            let update_names = HashSet::from_iter(ingredient_names.iter().map(|x| x.to_string()));
+
+
+            use recipemanagement::schema::recipe_ingredient::dsl::*;
+
+            let assigned_ingredients = recipe_ingredient.filter(recipe_id.eq(path))
+                .load::<RecipeIngredient>(x)
+                .unwrap();
+
+            let assigned_names: HashSet<String, RandomState> = HashSet::from_iter((assigned_ingredients.iter().map(|x| id_to_ingredient.get(&x.ingredient_id).unwrap().to_string())));
+
+            let to_connect = update_names.intersection(&existing_names)
+                .into_iter()
+                .map(|x| x.to_string())
+                .collect::<HashSet<String, RandomState>>()
+                .difference(&assigned_names)
+                .map(|x| x.to_string())
+                .collect::<HashSet<String, RandomState>>();
+            let to_delete: HashSet<String> = assigned_names.difference(&update_names).into_iter().map(|x| (x.clone())).collect();
+            let to_insert: HashSet<String> = update_names.difference(&existing_names).into_iter().map(|x| (x.clone())).collect();
+
+            let connect_obs: Vec<InsertRecipeIngredient> = to_connect.into_iter()
+                .map(|x| ingredient_to_id.get(x.as_str()).unwrap())
+                .map(|x| InsertRecipeIngredient { recipe_id: path, ingredient_id: *x })
+                .collect();
+            diesel::insert_into(recipe_ingredient)
+                .values(connect_obs)
+                .execute(x)
+                .unwrap();
+
+
+            let delete_ids: Vec<i32> = to_delete.into_iter().map(|x| *(ingredient_to_id.get(x.as_str()).unwrap()))
+                .collect();
+            diesel::delete(recipe_ingredient.filter(recipe_id.eq(path)).filter(ingredient_id.eq_any(&delete_ids)))
+                .execute(x).unwrap();
+
+            let start_id: i32 = ingredient.select(max(id))
+                .first::<Option<i32>>(x)
+                .unwrap()
+                .map(|x| x + 1)
+                .unwrap_or(1);
+
+
+            let new_ingredients: Vec<InsertIngredient> = to_insert.iter().enumerate()
+                .map(|(i, x)| InsertIngredient { id: Some(i as i32 + start_id), name: x.to_string() })
+                .collect();
+            let new_refs: Vec<InsertRecipeIngredient> = to_insert.iter()
+                .enumerate()
+                .map(|(i, x)| InsertRecipeIngredient { recipe_id: path, ingredient_id: i as i32 + start_id })
+                .collect();
+
+            diesel::insert_into(ingredient)
+                .values(new_ingredients)
+                .execute(x)
+                .unwrap();
+            diesel::insert_into(recipe_ingredient)
+                .values(new_refs)
+                .execute(x)
+                .unwrap();
+        }
+
+
+        Ok(())
+    }
+    );
+    return Redirect::to(format!("/recipe/edit/{}", path).as_str())
+}
+
+fn test(id_to_ingredient: HashMap<i32, String>) {
+    id_to_ingredient.get(&15).unwrap();
 }
 
 pub struct RecipeEditQuery {}
