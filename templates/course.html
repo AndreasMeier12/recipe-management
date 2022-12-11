@@ -13,8 +13,11 @@
     {% let opt_recipes = recipes_per_book_season.get((season.value_rofl(), book_id)) %}
 
     {% for recipe in opt_recipes.unwrap() %}
+
+    {% let id_ref = (recipe.recipe_id.as_ref().unwrap()|asref) %}
+
     <li> {{ recipe.recipe_name.clone().unwrap() }} - {% if recipe.page.is_some() %} {{ recipe.page.unwrap() }} {% endif
-        %} {% if logged_in %} {% if tried.contains(recipe.recipe_id.unwrap()) %} ✅ {% else %} ❌ {% endif %} {% endif %}
+        %} {% if logged_in %} {% if tried.contains(id_ref) %} tried {% endif %} {% endif %}
     </li>
     {% endfor %}
     {% endif %}

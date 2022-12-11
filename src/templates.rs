@@ -142,3 +142,9 @@ impl<'a> RecipeEditForm<'a> {
         return self.render().unwrap();
     }
 }
+
+mod filters {
+    pub fn asref<'a, T>(s: &'a T) -> askama::Result<&'a T> { //https://github.com/djc/askama/issues/330
+        Ok(s)
+    }
+}

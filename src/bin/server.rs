@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::RandomState;
 use std::fmt::format;
@@ -125,6 +126,9 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
             .unwrap();
         tried_ids = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
     }
+
+    let a: i32 = 15;
+    let a_ref = a.borrow();
 
     let content = CourseTemplate {
         course_name: asdf.course_name.as_ref().unwrap().as_str(),
