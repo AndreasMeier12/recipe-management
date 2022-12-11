@@ -18,6 +18,7 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum_sessions::{async_session::MemoryStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
 use axum_sessions::async_session::blake3::IncrementCounter::No;
 use diesel::dsl::{max, sql};
+use diesel::internal::operators_macro::FieldAliasMapper;
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_query;
@@ -370,6 +371,7 @@ struct PutRecipe {
     season: i32,
     ingredients: Option<String>,
     page: Option<String>,
+    url: Option<String>,
 }
 
 async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
@@ -385,11 +387,12 @@ async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form):
             .load::<FullRecipe>(x)
             .unwrap();
         let old_recipe = old_recipe_query.first().unwrap();
+        let update_url = form.url.filter(|x| !(x.trim().is_empty()));
 
 
         let edit_recipe = FullInsertRecipe {
             recipe_id: Some(path),
-            recipe_url: None,
+            recipe_url: update_url,
             recipe_name: Some(form.name),
             primary_season: form.season,
             course_id: form.course,

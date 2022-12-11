@@ -35,12 +35,19 @@
     </select>
 
     <label for="page">Page</label>
-    <input type="number" name="page" {% if recipe.page.as_ref().is_some() %} value="recipe.page.as_ref().unwrap()" {%
-           endif %}>
+    <input type="number" name="page" {% if recipe.page.as_ref().is_some() %} value="{{recipe.page.as_ref().unwrap()}}"
+           {%
+           endif %}>ingredient
 
 
     <label for="ingredients">Ingredients</label>
     <textarea name="ingredients">{{ingredients}}</textarea>
+
+    <label for="url">URL</label>
+    <input type="text" name="url" {% if recipe.recipe_url.as_ref().is_some() %}
+           value="{{recipe.recipe_url.as_ref().unwrap()}}" {%
+           endif %}>
+
 
     <input type="submit" value="edit">
 </form>
