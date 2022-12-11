@@ -16,6 +16,7 @@ use axum::{body::Body, response::{Html, Json}};
 use axum::extract::{Path, Query};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum_sessions::{async_session::MemoryStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
+use axum_sessions::async_session::blake3::Hash;
 use axum_sessions::async_session::blake3::IncrementCounter::No;
 use diesel::dsl::{max, sql};
 use diesel::internal::operators_macro::FieldAliasMapper;
@@ -83,7 +84,7 @@ async fn index_handler() -> Html<String> {
     return Html(a);
 }
 
-async fn handle_course(Path(path): Path<String>) -> Html<String> {
+async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Html<String> {
     let name = path.as_str();
     let con = &mut database::establish_connection();
     use recipemanagement::schema::course::dsl::*;
@@ -115,7 +116,26 @@ async fn handle_course(Path(path): Path<String>) -> Html<String> {
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
-    let content = CourseTemplate { course_name: asdf.course_name.as_ref().unwrap().as_str(), seasons: ESeason::get_seasons(), recipes_per_book_season: recipes_per_book_season, books: &books, courses: course_refs, title: name }.get();
+    let mut tried_ids: HashSet<i32> = HashSet::new();
+    let maybe_user_id: Option<i32> = session.get::<i32>("user_id");
+    if maybe_user_id.is_some() {
+        use recipemanagement::schema::tried::dsl::*;
+        let temp = tried.filter(user_id.eq(maybe_user_id.unwrap()))
+            .load::<Tried>(con)
+            .unwrap();
+        tried_ids = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
+    }
+
+    let content = CourseTemplate {
+        course_name: asdf.course_name.as_ref().unwrap().as_str(),
+        seasons: ESeason::get_seasons(),
+        recipes_per_book_season: recipes_per_book_season,
+        books: &books,
+        courses: course_refs,
+        title: name,
+        tried: tried_ids,
+        logged_in: maybe_user_id.is_some(),
+    }.get();
 
     return Html(content);
 }

@@ -54,6 +54,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    tried (user_id, recipe_id) {
+        user_id -> Integer,
+        recipe_id -> Integer,
+        created_at -> Nullable<Float>,
+    }
+}
+
+diesel::table! {
     user (id) {
         id -> Nullable<Integer>,
         email -> Text,
@@ -66,6 +74,7 @@ diesel::joinable!(recipe -> book (book_id));
 diesel::joinable!(recipe -> course (course_id));
 diesel::joinable!(recipe -> season (primary_season));
 diesel::joinable!(recipe_ingredient -> ingredient (recipe_id));
+diesel::joinable!(tried -> user (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     book,
@@ -74,5 +83,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     recipe,
     recipe_ingredient,
     season,
+    tried,
     user,
 );

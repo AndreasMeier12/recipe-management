@@ -14,7 +14,7 @@
 
     {% for recipe in opt_recipes.unwrap() %}
     <li> {{ recipe.recipe_name.clone().unwrap() }} - {% if recipe.page.is_some() %} {{ recipe.page.unwrap() }} {% endif
-        %}
+        %} {% if logged_in %} {% if tried.contains(recipe.recipe_id.unwrap()) %} ✅ {% else %} ❌ {% endif %} {% endif %}
     </li>
     {% endfor %}
     {% endif %}

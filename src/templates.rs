@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use askama::Template;
 
@@ -37,6 +37,8 @@ pub struct CourseTemplate<'a> {
     pub seasons: Vec<ESeason>,
     pub recipes_per_book_season: HashMap<(usize, i32), Vec<&'a FullRecipe>>,
     pub title: &'a str,
+    pub tried: HashSet<i32>,
+    pub logged_in: bool,
 
     // in your template
 }

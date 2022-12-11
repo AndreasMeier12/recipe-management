@@ -8,6 +8,7 @@ use super::schema::ingredient;
 use super::schema::recipe;
 use super::schema::recipe_ingredient;
 use super::schema::season;
+use super::schema::tried;
 use super::schema::user;
 
 #[derive(Queryable, Associations, QueryableByName)]
@@ -171,5 +172,14 @@ pub struct User {
     pub id: Option<i32>,
     pub email: String,
     pub pw_hash: String,
+    pub created_at: Option<f32>,
+}
+
+
+#[derive(Queryable, QueryableByName)]
+#[diesel(table_name = tried)]
+pub struct Tried {
+    pub recipe_id: i32,
+    pub user_id: i32,
     pub created_at: Option<f32>,
 }
