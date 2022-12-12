@@ -136,6 +136,24 @@
     </style>
 
     {% block scripts %}{% endblock %}
+
+    <script>
+        addEventListener('DOMContentLoaded', (event) => {
+
+            let collapsibles = document.getElementsByClassName("js-collapsible");
+            for (const collapsible of collapsibles) {
+                collapsible.addEventListener('click', () => {
+                    let child = collapsible.nextElementSibling
+                    if (child.style.display === 'block') {
+                        child.style.display = 'none'
+                    } else {
+                        child.style.display = 'block'
+                    }
+
+                })
+            }
+        });
+    </script>
 </head>
 <body>
 <header>

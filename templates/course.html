@@ -34,8 +34,8 @@
 {% let book_id = book.book_id.unwrap() %}
 {% if recipes_per_book_season.contains_key((season.value_rofl(), book_id)) %}
 
-<h2>{{ book.book_name.clone().unwrap()}}</h2>
-<ul>
+<h2 class="js-collapsible">{{ book.book_name.clone().unwrap()}} [+/-] </h2>
+<ul style="display: block">
     {% let opt_recipes = recipes_per_book_season.get((season.value_rofl(), book_id)) %}
 
     {% for recipe in opt_recipes.unwrap() %}
