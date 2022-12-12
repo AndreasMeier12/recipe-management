@@ -295,7 +295,8 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
 
     if has_name {
         let arg = format!("%{}%", form.name.as_ref().unwrap());
-        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::recipe_name.like(arg))
+        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::recipe_name.like(arg.clone()))
+            .or_filter(recipe_url.like(arg))
     }
     let mut recipes = recipe_query.load::<FullRecipe>(con).unwrap();
     if has_name {
