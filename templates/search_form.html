@@ -11,7 +11,9 @@
 {% block content %}
 <form id="form" method="post" target="/search">
     <label for="name">Search</label>
-    <input id="name" name="name" type="text">
+    <input id="name" name="name" type="text"><br>
+
+    <label for="season">Season</label>
     <select id="season" name="season" required>
         <option value="-1"></option>
         {% for season in seasons %}
@@ -19,7 +21,7 @@
         </option>
         {% endfor %}
 
-    </select>
+    </select><br>
     <label for="course">Course</label>
 
     <select id="course" name="course">
@@ -28,7 +30,7 @@
         <option value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
-    </select>
+    </select> <br>
     <label for="book">Book</label>
     <select id="book" name="book">
         <option value="-1">-</option>
@@ -36,7 +38,7 @@
         <option value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
-    </select>
+    </select> <br>
     <label for="tried">Tried</label>
     <select id="tried" name="tried" required>
         <option value="0">-</option>
@@ -45,7 +47,7 @@
 
         </option>
 
-    </select>
+    </select> <br>
 
     <input type="submit" value="form">
 </form>

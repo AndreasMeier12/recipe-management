@@ -12,7 +12,7 @@
         </option>
         {% endfor %}
 
-    </select>
+    </select><br>
     <label for="course">Course</label>
 
     <select id="course" name="course" required>
@@ -21,7 +21,7 @@
                 value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
-    </select>
+    </select><br>
 
     <label for="book">Book</label>
     <select id="book" name="book">
@@ -32,21 +32,20 @@
                 value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
-    </select>
+    </select><br>
 
     <label for="page">Page</label>
     <input type="number" name="page" {% if recipe.page.as_ref().is_some() %} value="{{recipe.page.as_ref().unwrap()}}"
            {%
-           endif %}>ingredient
-
+           endif %}><br>
 
     <label for="ingredients">Ingredients</label>
-    <textarea name="ingredients">{{ingredients}}</textarea>
+    <textarea name="ingredients">{{ingredients}}</textarea><br>
 
     <label for="url">URL</label>
     <input type="text" name="url" {% if recipe.recipe_url.as_ref().is_some() %}
            value="{{recipe.recipe_url.as_ref().unwrap()}}" {%
-           endif %}>
+           endif %}><br>
 
 
     <input type="submit" value="edit">
