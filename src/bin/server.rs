@@ -37,6 +37,7 @@ use recipemanagement::parsetypes::ESeason;
 use recipemanagement::schema::course::dsl::course;
 use recipemanagement::schema::ingredient::dsl::ingredient;
 use recipemanagement::schema::recipe::primary_season;
+use recipemanagement::schema::recipe_ingredient::recipe_id;
 use recipemanagement::templates::*;
 
 #[tokio::main]
@@ -232,9 +233,15 @@ struct SearchRecipe {
     book: Option<i32>,
     season: Option<i32>,
     name: Option<String>,
+    tried: i32,
 }
 
-async fn search_form() -> Html<String> {
+async fn search_form(session: ReadableSession) -> Html<String> {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Html("Unauthorized".to_string());
+    }
+
     let con = &mut database::establish_connection();
 
     use recipemanagement::schema::book::dsl::*;
@@ -249,8 +256,15 @@ async fn search_form() -> Html<String> {
     return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None, title: "Search" }.get());
 }
 
-async fn search_result(Form(form): Form<SearchRecipe>) -> Html<String> {
+async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>) -> Html<String> {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Html("Unauthorized".to_string());
+    }
+
     let con = &mut database::establish_connection();
+
+
 
     use recipemanagement::schema::book::dsl::*;
 
@@ -296,6 +310,21 @@ WHERE name LIKE '{}'", form.name.as_ref().unwrap());
         if moar_recipes.is_ok() {
             recipes.extend(moar_recipes.unwrap())
         }
+    }
+    use recipemanagement::schema::tried::dsl::*;
+    let tried_query = format!("SELECT recipe_id FROM tried WHERE user_id={}", maybe_user_id.unwrap());
+    use recipemanagement::schema::tried::dsl::*;
+    let temp = tried.filter(user_id.eq(maybe_user_id.unwrap()))
+        .load::<Tried>(con)
+        .unwrap();
+    let tried_ids: HashSet<i32> = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
+
+
+    if form.tried == 1 {
+        recipes = recipes.into_iter().filter(|x| tried_ids.contains(x.recipe_id.as_ref().unwrap())).collect()
+    }
+    if form.tried == 2 {
+        recipes = recipes.into_iter().filter(|x| !(tried_ids.contains(&x.recipe_id.as_ref().unwrap()))).collect()
     }
 
 
