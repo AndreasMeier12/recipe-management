@@ -13,7 +13,7 @@
     <label for="name">Search</label>
     <input id="name" name="name" type="text">
     <select id="season" name="season" required>
-        <option value="0"></option>
+        <option value="-1"></option>
         {% for season in seasons %}
         <option value="{{season.value_rofl()}}">{{season.to_string()}}
         </option>
@@ -23,7 +23,7 @@
     <label for="course">Course</label>
 
     <select id="course" name="course">
-        <option value="0"></option>
+        <option value="-1">-</option>
         {% for course in courses %}
         <option value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
         </option>
@@ -31,7 +31,7 @@
     </select>
     <label for="book">Book</label>
     <select id="book" name="book">
-        <option value="0"></option>
+        <option value="-1">-</option>
         {% for book in books%}
         <option value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
         </option>
