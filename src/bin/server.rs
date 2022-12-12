@@ -12,18 +12,19 @@ use argon2::{
         PasswordHasher, PasswordVerifier, rand_core::OsRng, SaltString,
     },
 };
-use axum::{Extension, Form, Router, routing::get};
+use axum::{Extension, Form, Router, routing::{get, post}};
 use axum::{body::Body, response::{Html, Json}};
 use axum::extract::{Path, Query};
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum_sessions::{async_session::MemoryStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
 use axum_sessions::async_session::blake3::Hash;
 use axum_sessions::async_session::blake3::IncrementCounter::No;
-use diesel::dsl::{max, sql};
+use diesel::{select, sql_query};
+use diesel::dsl::{exists, max, sql};
 use diesel::internal::operators_macro::FieldAliasMapper;
 use diesel::prelude::*;
 use diesel::result::Error;
-use diesel::sql_query;
 use diesel::sql_types::BoolOrNullableBool;
 use itertools::Itertools;
 use rand::Rng;
@@ -57,7 +58,7 @@ async fn main() {
         .route("/search", get(search_form).post(search_result))
         .route("/login", get(login_page).post(my_login))
         .route("/recipe/edit/:id", get(edit_recipe_form).post(put_recipe))
-
+        .route("/api/tried/:id", post(toggle_tried))
         .layer(session_layer)
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
@@ -126,9 +127,6 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
             .unwrap();
         tried_ids = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
     }
-
-    let a: i32 = 15;
-    let a_ref = a.borrow();
 
     let content = CourseTemplate {
         course_name: asdf.course_name.as_ref().unwrap().as_str(),
@@ -512,6 +510,38 @@ async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form):
     }
     );
     return Redirect::to(format!("/recipe/edit/{}", path).as_str())
+}
+
+async fn toggle_tried(session: ReadableSession, Path(path): Path<i32>) -> StatusCode {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return StatusCode::UNAUTHORIZED;
+    }
+    let connection = &mut database::establish_connection();
+    let transaction_res = connection.transaction::<_, Error, _>(|con| {
+        use recipemanagement::schema::tried::dsl::*;
+        let already_exists = select(
+            exists(
+                tried.filter(user_id.eq(maybe_user_id.unwrap()))
+                    .filter(recipe_id.eq(path))
+            )
+        ).get_result::<bool>(con)
+            .unwrap();
+        if !already_exists {
+            diesel::insert_into(tried)
+                .values((&recipe_id.eq(path), &user_id.eq(maybe_user_id.unwrap())))
+                .execute(con).unwrap();
+        } else {
+            diesel::delete(tried.filter(user_id.eq(maybe_user_id.unwrap()))
+                .filter(recipe_id.eq(path))).execute(con).unwrap();
+        }
+
+
+        return Ok(());
+    });
+
+
+    return StatusCode::OK;
 }
 
 fn test(id_to_ingredient: HashMap<i32, String>) {

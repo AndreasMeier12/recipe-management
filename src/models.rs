@@ -179,7 +179,7 @@ pub struct User {
 #[derive(Queryable, QueryableByName)]
 #[diesel(table_name = tried)]
 pub struct Tried {
-    pub recipe_id: i32,
     pub user_id: i32,
+    pub recipe_id: i32,
     pub created_at: Option<f32>,
 }
