@@ -144,7 +144,11 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
 }
 
 
-async fn recipe_form(prefill: Query<RecipePrefill>) -> Html<String> {
+async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) -> Response {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Redirect::to("/login").into_response();
+    }
     let con = &mut database::establish_connection();
 
     use recipemanagement::schema::book::dsl::*;
@@ -156,7 +160,8 @@ async fn recipe_form(prefill: Query<RecipePrefill>) -> Html<String> {
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, prefill: prefill.0, title: "Add Recipe" }.get());
+    return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, prefill: prefill.0, title: "Add Recipe" }.get())
+        .into_response();
 }
 
 #[derive(Deserialize)]
@@ -170,7 +175,11 @@ struct PostRecipe {
 
 }
 
-async fn post_recipe(Form(form): Form<PostRecipe>) -> Redirect {
+async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> Response {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Redirect::to("/login").into_response();
+    }
     let con = &mut database::establish_connection();
     use recipemanagement::schema::recipe;
     let book_id = form.book.map(|x| x.parse::<i32>()).unwrap_or(Ok(0)).ok();
@@ -185,7 +194,7 @@ async fn post_recipe(Form(form): Form<PostRecipe>) -> Redirect {
     let url = format!("/recipe/add?season={}&course={}&book={}", form.season, form.course, book_id.unwrap_or(0));
 
 
-    return Redirect::to(url.as_str());
+    return Redirect::to(url.as_str()).into_response();
 }
 
 
@@ -194,17 +203,25 @@ struct PostBook {
     booktext: String,
 }
 
-async fn book_form() -> Html<String> {
+async fn book_form(session: ReadableSession) -> Response {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Redirect::to("/login").into_response();
+    }
     let con = &mut database::establish_connection();
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(BookForm { courses: course_refs, title: "Add book" }.get());
+    return Html(BookForm { courses: course_refs, title: "Add book" }.get()).into_response();
 }
 
-async fn post_book(Form(form): Form<PostBook>) -> Redirect {
+async fn post_book(session: ReadableSession, Form(form): Form<PostBook>) -> Redirect {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Redirect::to("/login");
+    }
     let content = form;
     let con = &mut database::establish_connection();
     {
@@ -236,10 +253,10 @@ struct SearchRecipe {
     tried: i32,
 }
 
-async fn search_form(session: ReadableSession) -> Html<String> {
+async fn search_form(session: ReadableSession) -> Response {
     let maybe_user_id = session.get::<i32>("user_id");
     if maybe_user_id.is_none() {
-        return Html("Unauthorized".to_string());
+        return Redirect::to("/login").into_response();
     }
 
     let con = &mut database::establish_connection();
@@ -253,13 +270,13 @@ async fn search_form(session: ReadableSession) -> Html<String> {
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None, title: "Search" }.get());
+    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None, title: "Search" }.get()).into_response();
 }
 
-async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>) -> Html<String> {
+async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>) -> Response {
     let maybe_user_id = session.get::<i32>("user_id");
     if maybe_user_id.is_none() {
-        return Html("Unauthorized".to_string());
+        return Redirect::to("/login").into_response();
     }
 
     let con = &mut database::establish_connection();
@@ -276,13 +293,13 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
 
     use recipemanagement::schema::recipe::dsl::*;
     let mut recipe_query = recipe.into_boxed();
-    if form.course.as_ref().filter(|x| **x != 0).is_some() {
+    if form.course.as_ref().filter(|x| **x != -1).is_some() {
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::course_id.eq(form.course.unwrap()))
     }
-    if form.season.as_ref().filter(|x| **x != 0).is_some() {
+    if form.season.as_ref().filter(|x| **x != -1).is_some() {
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::primary_season.eq(form.season.unwrap()))
     }
-    if form.book.as_ref().filter(|x| **x != 0).is_some() {
+    if form.book.as_ref().filter(|x| **x != -1).is_some() {
         recipe_query = recipe_query.filter(recipemanagement::schema::recipe::book_id.eq(form.book.unwrap()))
     }
 
@@ -329,7 +346,7 @@ WHERE name LIKE '{}'", form.name.as_ref().unwrap());
     }
 
 
-    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes), title: "Search" }.get());
+    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes), title: "Search" }.get()).into_response();
 }
 
 async fn login_page() -> Html<String> {
@@ -369,10 +386,11 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
     return Redirect::to("/");
 }
 
-async fn edit_recipe_form(session: ReadableSession, Path(path): Path<i32>) -> Html<String> {
-    /*    if  session.get::<i32>("user_id").is_none(){
-            return Html("Forbidden".to_string());
-        }*/
+async fn edit_recipe_form(session: ReadableSession, Path(path): Path<i32>) -> Response {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Redirect::to("/login").into_response();
+    }
     use recipemanagement::schema::recipe::dsl::*;
     let con = &mut database::establish_connection();
 
@@ -385,7 +403,7 @@ async fn edit_recipe_form(session: ReadableSession, Path(path): Path<i32>) -> Ht
         .first();
 
     if das_recipe.is_none() {
-        return Html("404'd".to_string());
+        return Html("404'd".to_string()).into_response();
     }
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     use recipemanagement::schema::book::dsl::*;
@@ -412,7 +430,8 @@ WHERE recipe_id={}", path);
         books: &books,
         seasons: ESeason::get_seasons(),
         prefill_season: prefill_season,
-    }.get());
+    }.get())
+        .into_response();
 }
 
 #[derive(Deserialize)]
@@ -427,6 +446,11 @@ struct PutRecipe {
 }
 
 async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Redirect::to("/login");
+    }
+
     let con = &mut database::establish_connection();
 
     let page_res = form.page.map(|x| x.parse::<i32>()).and_then(|x| x.ok());
