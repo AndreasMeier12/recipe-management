@@ -29,16 +29,18 @@
 
 {% block content%}
 {% for season in seasons %}
-<h1>{{season.to_string()}}</h1>
-{% for book in books %}
-{% let book_id = book.book_id.unwrap() %}
-{% if recipes_per_book_season.contains_key((season.value_rofl(), book_id)) %}
+<h1 class="js-collapsible">{{season.to_string()}} </h1>
+<div style="display: block">
 
-<h2 class="js-collapsible">{{ book.book_name.clone().unwrap()}} [+/-] </h2>
-<ul style="display: block">
-    {% let opt_recipes = recipes_per_book_season.get((season.value_rofl(), book_id)) %}
+    {% for book in books %}
+    {% let book_id = book.book_id.unwrap() %}
+    {% if recipes_per_book_season.contains_key((season.value_rofl(), book_id)) %}
 
-    {% for recipe in opt_recipes.unwrap() %}
+    <h2 class="js-collapsible">{{ book.book_name.clone().unwrap()}} </h2>
+    <ul style="display: block">
+        {% let opt_recipes = recipes_per_book_season.get((season.value_rofl(), book_id)) %}
+
+        {% for recipe in opt_recipes.unwrap() %}
 
     {% let cur_id = recipe.recipe_id.as_ref().unwrap() %}
     {% let id_ref = (recipe.recipe_id.as_ref().unwrap()|asref) %}
@@ -50,12 +52,13 @@
         </button>
         {% endif %}
     </li>
+        {% endfor %}
+        {% endif %}
+    </ul>
+
+
     {% endfor %}
-    {% endif %}
-</ul>
-
-
-{% endfor %}
+</div>
 
 {% endfor %}
 {% endblock %}
