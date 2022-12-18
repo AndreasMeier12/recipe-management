@@ -195,7 +195,7 @@ pub struct Comment {
     pub created_at: f32,
 }
 
-#[derive(Queryable, QueryableByName)]
+#[derive(Insertable)]
 #[diesel(table_name = recipe_comment)]
 pub struct InsertComment {
     pub user_id: i32,

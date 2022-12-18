@@ -44,6 +44,15 @@
     </ul>
 </div>
 
+<div id="div-recipe-detail-comment-form">
+    <form method="post">
+        <label for="comment">Comment</label>
+        <textarea name="comment"></textarea>
+        <input type="submit" value="Submit">
+
+    </form>
+</div>
+
 <div id="div-comments">
     <h2>Comments</h2>
     {% for comment in comments %}

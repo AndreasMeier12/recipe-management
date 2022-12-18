@@ -60,7 +60,7 @@ async fn main() {
         .route("/login", get(login_page).post(my_login))
         .route("/recipe/edit/:id", get(edit_recipe_form).post(put_recipe))
         .route("/api/tried/:id", post(toggle_tried))
-        .route("/recipe/detail/:id", get(recipe_detail))
+        .route("/recipe/detail/:id", get(recipe_detail).post(post_comment))
         .layer(session_layer)
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
@@ -711,6 +711,38 @@ async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Respo
         }.get())
         .unwrap_or("404".to_string())
     ).into_response();
+}
+
+#[derive(Deserialize)]
+struct PostComment {
+    comment: String,
+}
+
+async fn post_comment(session: ReadableSession, Path(path): Path<i32>, Form(form): Form<PostComment>) -> Response {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    let con = &mut database::establish_connection();
+
+
+    if !form.comment.trim().is_empty() {
+        let cur_user_id = maybe_user_id.unwrap();
+        use recipemanagement::schema::recipe_comment::dsl::*;
+        let insert_comment = InsertComment {
+            user_id: cur_user_id,
+            recipe_id: path,
+            content: form.comment.trim().to_string(),
+        };
+
+        diesel::insert_into(recipemanagement::schema::recipe_comment::table)
+            .values(vec![insert_comment])
+            .execute(con)
+            .unwrap();
+    }
+
+
+    return Redirect::to(format!("/recipe/detail/{}", path).as_str()).into_response();
 }
 
 
