@@ -162,6 +162,7 @@ pub struct RecipeDetail<'a> {
     pub season: ESeason,
     pub tried: bool,
     pub comments: Vec<Comment>,
+    pub recipe_text: String,
 
 }
 

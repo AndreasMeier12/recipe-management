@@ -675,6 +675,11 @@ WHERE recipe_id={}", path);
     let comments = recipe_comment.filter(recipemanagement::schema::recipe_comment::recipe_id.eq(path))
         .load::<Comment>(con)
         .unwrap();
+    use recipemanagement::schema::recipe_text::dsl::*;
+
+    let recipe_text_disp = recipe_text.filter(recipemanagement::schema::recipe_text::recipe_id.eq(path))
+        .load::<RecipeText>(con)
+        .unwrap().first().map(|x| x.content.clone()).unwrap_or("".to_string());
 
 
     return Ok(Some(RecipeDetailQuery {
@@ -686,7 +691,8 @@ WHERE recipe_id={}", path);
         book_name: disp_book,
         season: ESeason::get_by_db_id(res_recipe.primary_season),
         tried: already_exists,
-        comments: comments
+        comments: comments,
+        recipe_text: recipe_text_disp,
     }));
 }
 
@@ -700,6 +706,7 @@ struct RecipeDetailQuery {
     season: ESeason,
     tried: bool,
     comments: Vec<Comment>,
+    recipe_text: String
 
 }
 
@@ -723,6 +730,7 @@ async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Respo
             season: x.season,
             tried: x.tried,
             comments: x.comments,
+            recipe_text: x.recipe_text,
         }.get())
         .unwrap_or("404".to_string())
     ).into_response();
