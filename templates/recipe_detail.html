@@ -18,9 +18,21 @@
         </td>
     </tr>
     <tr>
-        <th>Tried</th>
-        <td>todo</td>
+        <th>Book</th>
+        <td>{% if book_name.as_ref().is_some() %}{{book_name.as_ref().unwrap()}}{% else %}-{% endif %}</td>
     </tr>
+    <tr>
+        <th>Page</th>
+        <td>{% if recipe.page.as_ref().is_some() %}{{recipe.page.as_ref().unwrap()}}{% else %}-{% endif %}</td>
+    </tr>
+    <tr>
+        <th>Tried</th>
+        <td>{% if tried %}✅{% else %}❌{% endif %}</td>
+    </tr>
+
+    <div>
+        <a class="btn" href="/recipe/edit/{{recipe.recipe_id.unwrap()}}">Edit</a>
+    </div>
 
 </table>
 <div id="div-ingredients">

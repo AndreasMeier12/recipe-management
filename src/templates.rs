@@ -159,6 +159,7 @@ pub struct RecipeDetail<'a> {
     pub title: &'a str,
     pub book_name: &'a Option<String>,
     pub season: ESeason,
+    pub tried: bool,
 
 }
 

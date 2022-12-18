@@ -564,7 +564,7 @@ async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form):
         Ok(())
     }
     );
-    return Redirect::to(format!("/recipe/edit/{}", path).as_str())
+    return Redirect::to(format!("/recipe/detail/{}", path).as_str())
 }
 
 async fn toggle_tried(session: ReadableSession, Path(path): Path<i32>) -> StatusCode {
@@ -606,11 +606,11 @@ fn test(id_to_ingredient: HashMap<i32, String>) {
 pub struct RecipeEditQuery {}
 
 
-fn query_for_recipe_detail<'a, 'b>(con: &mut SqliteConnection, path: i32) -> Result<Option<RecipeDetailQuery>, Error> {
+fn query_for_recipe_detail<'a, 'b>(con: &mut SqliteConnection, path: i32, cur_user_id: i32) -> Result<Option<RecipeDetailQuery>, Error> {
     use recipemanagement::schema::recipe::dsl::*;
 
     let query = recipe
-        .filter(recipe_id.eq(path))
+        .filter(recipemanagement::schema::recipe::recipe_id.eq(path))
         .load::<FullRecipe>(con)
         .unwrap();
 
@@ -647,6 +647,14 @@ WHERE recipe_id={}", path);
         .map(|x| x.name.as_ref().unwrap().clone())
         .collect();
 
+    use recipemanagement::schema::tried::dsl::*;
+    let already_exists = select(
+        exists(
+            tried.filter(user_id.eq(cur_user_id))
+                .filter(recipemanagement::schema::tried::recipe_id.eq(path))
+        )
+    ).get_result::<bool>(con).unwrap();
+
 
     return Ok(Some(RecipeDetailQuery {
         courses: courses,
@@ -656,6 +664,7 @@ WHERE recipe_id={}", path);
         title: res_recipe.recipe_name.clone().unwrap(),
         book_name: disp_book,
         season: ESeason::get_by_db_id(res_recipe.primary_season),
+        tried: already_exists,
     }));
 }
 
@@ -667,6 +676,7 @@ struct RecipeDetailQuery {
     title: String,
     book_name: Option<String>,
     season: ESeason,
+    tried: bool
 
 }
 
@@ -677,7 +687,7 @@ async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Respo
         return Redirect::to("/login").into_response();
     }
     let con = &mut database::establish_connection();
-    let res = con.transaction(|x| query_for_recipe_detail(x, path));
+    let res = con.transaction(|x| query_for_recipe_detail(x, path, maybe_user_id.unwrap()));
     return Html(res.ok()
         .unwrap()
         .map(|x| RecipeDetail {
@@ -688,6 +698,7 @@ async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Respo
             title: x.title.as_str(),
             book_name: &x.book_name,
             season: x.season,
+            tried: x.tried
         }.get())
         .unwrap_or("404".to_string())
     ).into_response();
