@@ -132,6 +132,7 @@ pub struct RecipeEditForm<'a> {
     pub books: &'a Vec<QBook>,
     pub seasons: Vec<ESeason>,
     pub prefill_season: usize,
+    pub recipe_text: String,
 
     // in your template
 }

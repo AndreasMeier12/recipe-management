@@ -46,8 +46,8 @@
     <input type="text" name="url" {% if recipe.recipe_url.as_ref().is_some() %}
            value="{{recipe.recipe_url.as_ref().unwrap()}}" {%
            endif %}><br>
-
-
+    <label for="recipe_text">The recipe itself</label>
+    <textarea name="recipe_text">{{recipe_text}}</textarea><br>
     <input type="submit" value="edit">
 </form>
 

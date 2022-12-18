@@ -8,6 +8,7 @@ use super::schema::ingredient;
 use super::schema::recipe;
 use super::schema::recipe_comment;
 use super::schema::recipe_ingredient;
+use super::schema::recipe_text;
 use super::schema::season;
 use super::schema::tried;
 use super::schema::user;
@@ -199,6 +200,24 @@ pub struct Comment {
 #[diesel(table_name = recipe_comment)]
 pub struct InsertComment {
     pub user_id: i32,
+    pub recipe_id: i32,
+    pub content: String,
+}
+
+
+#[derive(Queryable)]
+#[diesel(table_name = recipe_text)]
+pub struct RecipeText {
+    pub recipe_id: i32,
+    pub content: String,
+    pub created_at: f32,
+    pub modified_at: Option<f32>,
+
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = recipe_text)]
+pub struct InsertRecipeText {
     pub recipe_id: i32,
     pub content: String,
 }

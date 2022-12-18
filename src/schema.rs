@@ -56,6 +56,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    recipe_text (recipe_id) {
+        recipe_id -> Integer,
+        content -> Text,
+        created_at -> Float,
+        modified_at -> Nullable<Float>,
+    }
+}
+
+diesel::table! {
     season (season_id) {
         season_id -> Nullable<Integer>,
         tag_name -> Nullable<Text>,
@@ -94,6 +103,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     recipe,
     recipe_comment,
     recipe_ingredient,
+    recipe_text,
     season,
     tried,
     user,

@@ -173,6 +173,7 @@ struct PostRecipe {
     name: String,
     url: Option<String>,
     page: Option<String>,
+    recipe_text: Option<String>,
 
 }
 
@@ -396,7 +397,7 @@ async fn edit_recipe_form(session: ReadableSession, Path(path): Path<i32>) -> Re
     let con = &mut database::establish_connection();
 
     let query = recipe
-        .filter(recipe_id.eq(path))
+        .filter(recipemanagement::schema::recipe::recipe_id.eq(path))
         .load::<FullRecipe>(con)
         .unwrap();
 
@@ -421,6 +422,10 @@ WHERE recipe_id={}", path);
         .unwrap();
     let ingredient_prefill = ingredients.iter().map(|x| x.name.as_ref().unwrap()).join("\n");
     let prefill_season = das_recipe.as_ref().unwrap().primary_season as usize;
+    use recipemanagement::schema::recipe_text::dsl::*;
+    let recipe_text_disp = recipe_text.filter(recipemanagement::schema::recipe_text::recipe_id.eq(path))
+        .load::<RecipeText>(con)
+        .unwrap().first().map(|x| x.content.clone()).unwrap_or("".to_string());
 
 
     return Html(RecipeEditForm {
@@ -431,6 +436,7 @@ WHERE recipe_id={}", path);
         books: &books,
         seasons: ESeason::get_seasons(),
         prefill_season: prefill_season,
+        recipe_text: recipe_text_disp,
     }.get())
         .into_response();
 }
@@ -444,6 +450,7 @@ struct PutRecipe {
     ingredients: Option<String>,
     page: Option<String>,
     url: Option<String>,
+    recipe_text: Option<String>
 }
 
 async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
@@ -501,10 +508,18 @@ async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form):
             let existing_names: HashSet<String, RandomState> = HashSet::from_iter(existing_ingredients.iter().map(|x| x.name.as_ref().unwrap().to_string()));
             let update_names = HashSet::from_iter(ingredient_names.iter().map(|x| x.to_string()));
 
+            use recipemanagement::schema::recipe_text::dsl::*;
+            let edit_recipe_text = InsertRecipeText { recipe_id: path, content: form.recipe_text.unwrap_or("".to_string()) };
+            diesel::replace_into(recipe_text)
+                .values(vec![edit_recipe_text])
+                .execute(x)
+                .unwrap();
+
+
 
             use recipemanagement::schema::recipe_ingredient::dsl::*;
 
-            let assigned_ingredients = recipe_ingredient.filter(recipe_id.eq(path))
+            let assigned_ingredients = recipe_ingredient.filter(recipemanagement::schema::recipe_ingredient::recipe_id.eq(path))
                 .load::<RecipeIngredient>(x)
                 .unwrap();
 
@@ -532,7 +547,7 @@ async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form):
 
             let delete_ids: Vec<i32> = to_delete.into_iter().map(|x| *(ingredient_to_id.get(x.as_str()).unwrap()))
                 .collect();
-            diesel::delete(recipe_ingredient.filter(recipe_id.eq(path)).filter(ingredient_id.eq_any(&delete_ids)))
+            diesel::delete(recipe_ingredient.filter(recipemanagement::schema::recipe_ingredient::recipe_id.eq(path)).filter(ingredient_id.eq_any(&delete_ids)))
                 .execute(x).unwrap();
 
             let start_id: i32 = ingredient.select(max(id))
