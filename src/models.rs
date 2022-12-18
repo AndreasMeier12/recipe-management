@@ -6,6 +6,7 @@ use super::schema::book;
 use super::schema::course;
 use super::schema::ingredient;
 use super::schema::recipe;
+use super::schema::recipe_comment;
 use super::schema::recipe_ingredient;
 use super::schema::season;
 use super::schema::tried;
@@ -183,3 +184,22 @@ pub struct Tried {
     pub recipe_id: i32,
     pub created_at: Option<f32>,
 }
+
+#[derive(Queryable, QueryableByName)]
+#[diesel(table_name = recipe_comment)]
+pub struct Comment {
+    pub comment_id: i32,
+    pub user_id: i32,
+    pub recipe_id: i32,
+    pub content: String,
+    pub created_at: f32,
+}
+
+#[derive(Queryable, QueryableByName)]
+#[diesel(table_name = recipe_comment)]
+pub struct InsertComment {
+    pub user_id: i32,
+    pub recipe_id: i32,
+    pub content: String,
+}
+

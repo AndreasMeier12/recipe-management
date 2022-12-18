@@ -38,6 +38,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    recipe_comment (comment_id) {
+        comment_id -> Integer,
+        user_id -> Integer,
+        recipe_id -> Integer,
+        content -> Text,
+        created_at -> Float,
+    }
+}
+
+diesel::table! {
     recipe_ingredient (recipe_id, ingredient_id) {
         recipe_id -> Integer,
         ingredient_id -> Integer,
@@ -73,6 +83,7 @@ diesel::table! {
 diesel::joinable!(recipe -> book (book_id));
 diesel::joinable!(recipe -> course (course_id));
 diesel::joinable!(recipe -> season (primary_season));
+diesel::joinable!(recipe_comment -> user (user_id));
 diesel::joinable!(recipe_ingredient -> ingredient (recipe_id));
 diesel::joinable!(tried -> user (user_id));
 
@@ -81,6 +92,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     course,
     ingredient,
     recipe,
+    recipe_comment,
     recipe_ingredient,
     season,
     tried,

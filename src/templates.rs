@@ -160,6 +160,7 @@ pub struct RecipeDetail<'a> {
     pub book_name: &'a Option<String>,
     pub season: ESeason,
     pub tried: bool,
+    pub comments: Vec<Comment>,
 
 }
 
