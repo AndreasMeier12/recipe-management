@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{recipe.recipe_name.as_ref().unwrap()}}</h1>
+<table id="table-recipe-detail">
+    <tr>
+        <th>Season</th>
+        <td> {{season}}</td>
+    </tr>
+    <tr>
+        <th>Course</th>
+        <td> {{course}}</td>
+    </tr>
+    <tr>
+        <th>Url</th>
+        <td> {% if recipe.recipe_url.as_ref().is_some() %} <a href="{{recipe.recipe_url.as_ref().unwrap()}}">Link</a> {%
+            else %} - {% endif %}
+        </td>
+    </tr>
+    <tr>
+        <th>Tried</th>
+        <td>todo</td>
+    </tr>
+
+</table>
+<div id="div-ingredients">
+    <h2>Ingredients for searching</h2>
+    <ul id="list-ingredients">
+        {% for ingredient in ingredients %}
+        <li>{{ingredient}}</li>
+        {% endfor %}
+    </ul>
+</div>
+
+{% endblock %}

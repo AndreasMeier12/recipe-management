@@ -60,6 +60,7 @@ async fn main() {
         .route("/login", get(login_page).post(my_login))
         .route("/recipe/edit/:id", get(edit_recipe_form).post(put_recipe))
         .route("/api/tried/:id", post(toggle_tried))
+        .route("/recipe/detail/:id", get(recipe_detail))
         .layer(session_layer)
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
@@ -605,5 +606,95 @@ fn test(id_to_ingredient: HashMap<i32, String>) {
 pub struct RecipeEditQuery {}
 
 
+fn query_for_recipe_detail<'a, 'b>(con: &mut SqliteConnection, path: i32) -> Result<Option<RecipeDetailQuery>, Error> {
+    use recipemanagement::schema::recipe::dsl::*;
+
+    let query = recipe
+        .filter(recipe_id.eq(path))
+        .load::<FullRecipe>(con)
+        .unwrap();
+
+    let das_recipe = query
+        .first();
+    if das_recipe.is_none() {
+        return Ok::<Option<RecipeDetailQuery>, Error>(None);
+    }
+
+    use recipemanagement::schema::book::dsl::*;
+
+    let disp_book: Option<String> = book.filter(recipemanagement::schema::book::dsl::book_id.eq(das_recipe.unwrap().book_id)).load::<QBook>(con).unwrap()
+        .first()
+        .map(|x| x.book_name.as_ref().unwrap().clone());
+
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let res_recipe = das_recipe.unwrap();
+
+    let course_name: String = courses.iter()
+        .filter(|x| x.course_id.is_some() && x.course_id.unwrap() == res_recipe.course_id)
+        .map(|x| x.course_name.clone())
+        .next()
+        .unwrap()
+        .unwrap();
+
+    let ingredient_query_sql = format!("
+SELECT i.*
+FROM recipe_ingredient INNER JOIN ingredient i on i.id = recipe_ingredient.ingredient_id
+WHERE recipe_id={}", path);
+    let ingredients: Vec<String> = sql_query(ingredient_query_sql)
+        .load::<Ingredient>(con)
+        .unwrap()
+        .iter()
+        .map(|x| x.name.as_ref().unwrap().clone())
+        .collect();
+
+
+    return Ok(Some(RecipeDetailQuery {
+        courses: courses,
+        course: course_name,
+        recipe: res_recipe.clone(),
+        ingredients: ingredients,
+        title: res_recipe.recipe_name.clone().unwrap(),
+        book_name: disp_book,
+        season: ESeason::get_by_db_id(res_recipe.primary_season),
+    }));
+}
+
+struct RecipeDetailQuery {
+    courses: Vec<QCourse>,
+    course: String,
+    recipe: FullRecipe,
+    ingredients: Vec<String>,
+    title: String,
+    book_name: Option<String>,
+    season: ESeason,
+
+}
+
+
+async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Response {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return Redirect::to("/login").into_response();
+    }
+    let con = &mut database::establish_connection();
+    let res = con.transaction(|x| query_for_recipe_detail(x, path));
+    return Html(res.ok()
+        .unwrap()
+        .map(|x| RecipeDetail {
+            courses: &x.courses,
+            course: x.course.as_str(),
+            recipe: &x.recipe,
+            ingredients: x.ingredients,
+            title: x.title.as_str(),
+            book_name: &x.book_name,
+            season: x.season,
+        }.get())
+        .unwrap_or("404".to_string())
+    ).into_response();
+}
+
+
 fn query_course() {}
+
+
 

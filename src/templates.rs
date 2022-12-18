@@ -148,3 +148,22 @@ mod filters {
         Ok(s)
     }
 }
+
+#[derive(Template)] // this will generate the code...
+#[template(path = "recipe_detail.html")] // using the template in this path, relative
+pub struct RecipeDetail<'a> {
+    pub courses: &'a Vec<QCourse>,
+    pub course: &'a str,
+    pub recipe: &'a FullRecipe,
+    pub ingredients: Vec<String>,
+    pub title: &'a str,
+    pub book_name: &'a Option<String>,
+    pub season: ESeason,
+
+}
+
+impl<'a> RecipeDetail<'a> {
+    pub fn get(&self) -> String {
+        return self.render().unwrap();
+    }
+}

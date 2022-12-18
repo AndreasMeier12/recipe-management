@@ -11,7 +11,7 @@ use super::schema::season;
 use super::schema::tried;
 use super::schema::user;
 
-#[derive(Queryable, Associations, QueryableByName)]
+#[derive(Queryable, Associations, QueryableByName, Clone)]
 #[diesel(table_name = recipe)]
 #[belongs_to(parent = "QCourse", foreign_key = "course_id")]
 pub struct FullRecipe {

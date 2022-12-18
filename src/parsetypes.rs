@@ -74,6 +74,10 @@ impl ESeason {
     pub fn to_map() -> HashMap<usize, ESeason> {
         return HashMap::from([(1, ESeason::Summer), (2, ESeason::Autumn), (3, ESeason::Winter), (4, ESeason::Spring), (5, ESeason::Independent)]);
     }
+
+    pub fn get_by_db_id(id: i32) -> ESeason {
+        return *(ESeason::to_map().get(&(id as usize)).unwrap());
+    }
 }
 
 
