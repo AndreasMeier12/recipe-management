@@ -31,9 +31,10 @@ use rand::Rng;
 use serde::Deserialize;
 
 use recipemanagement::*;
-use recipemanagement::args::{RecipePrefill, SearchPrefill};
+use recipemanagement::args::{RecipePrefill, SearchPrefill, SearchRecipe};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
+use recipemanagement::queries::build_search_query;
 use recipemanagement::schema::course::dsl::course;
 use recipemanagement::schema::ingredient::dsl::ingredient;
 use recipemanagement::schema::recipe::primary_season;
@@ -246,14 +247,7 @@ async fn post_book(session: ReadableSession, Form(form): Form<PostBook>) -> Redi
     return Redirect::to("/");
 }
 
-#[derive(Deserialize)]
-struct SearchRecipe {
-    course: Option<i32>,
-    book: Option<i32>,
-    season: Option<i32>,
-    name: Option<String>,
-    tried: i32,
-}
+
 
 async fn search_form(session: ReadableSession) -> Response {
     let maybe_user_id = session.get::<i32>("user_id");
@@ -293,59 +287,15 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
-    use recipemanagement::schema::recipe::dsl::*;
-    let mut recipe_query = recipe.into_boxed();
-    if form.course.as_ref().filter(|x| **x != -1).is_some() {
-        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::course_id.eq(form.course.unwrap()))
-    }
-    if form.season.as_ref().filter(|x| **x != -1).is_some() {
-        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::primary_season.eq(form.season.unwrap()))
-    }
-    if form.book.as_ref().filter(|x| **x != -1).is_some() {
-        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::book_id.eq(form.book.unwrap()))
-    }
-
-    let has_name = form.name.as_ref().filter(|x| **x != "").is_some();
 
     use recipemanagement::schema::book::dsl::*;
 
     let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
 
-
-    if has_name {
-        let arg = format!("%{}%", form.name.as_ref().unwrap());
-        recipe_query = recipe_query.filter(recipemanagement::schema::recipe::recipe_name.like(arg.clone()))
-            .or_filter(recipe_url.like(arg))
-    }
-    let mut recipes = recipe_query.load::<FullRecipe>(con).unwrap();
-    if has_name {
-        let sql_string = format!("SELECT r.*
-FROM ingredient
-         INNER JOIN recipe_ingredient ri on ingredient.id = ri.ingredient_id
-         INNER JOIN recipe r on r.recipe_id = ri.recipe_id
-WHERE name LIKE '{}'", form.name.as_ref().unwrap());
-
-        let moar_recipes = sql_query(sql_string)
-            .load::<FullRecipe>(con);
-        if moar_recipes.is_ok() {
-            recipes.extend(moar_recipes.unwrap())
-        }
-    }
-    use recipemanagement::schema::tried::dsl::*;
-    let tried_query = format!("SELECT recipe_id FROM tried WHERE user_id={}", maybe_user_id.unwrap());
-    use recipemanagement::schema::tried::dsl::*;
-    let temp = tried.filter(user_id.eq(maybe_user_id.unwrap()))
-        .load::<Tried>(con)
-        .unwrap();
-    let tried_ids: HashSet<i32> = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
-
-
-    if form.tried == 1 {
-        recipes = recipes.into_iter().filter(|x| tried_ids.contains(x.recipe_id.as_ref().unwrap())).collect()
-    }
-    if form.tried == 2 {
-        recipes = recipes.into_iter().filter(|x| !(tried_ids.contains(&x.recipe_id.as_ref().unwrap()))).collect()
-    }
+    let query_string = build_search_query(form, maybe_user_id.unwrap());
+    let recipes = sql_query(query_string)
+        .load::<FullRecipe>(con)
+        .ok().unwrap_or(vec![]);
 
 
     return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes), title: "Search" }.get()).into_response();
