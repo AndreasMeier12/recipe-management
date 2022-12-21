@@ -64,6 +64,7 @@ fn main() {
     let con = &mut establish_connection();
 
     use recipemanagement::schema::recipe;
+    let recipe_ingredients: Vec<&InsertRecipeIngredient> = ingredient_infos.1.iter().unique().map(|x| x.clone()).collect();
     let transaction_res = con.transaction::<_, Error, _>(|x| {
         diesel::insert_into(recipe::table)
             .values(&recipes)
@@ -91,7 +92,7 @@ fn main() {
             .unwrap();
         use recipemanagement::schema::recipe_ingredient;
         diesel::insert_into(recipe_ingredient::table)
-            .values(&ingredient_infos.1)
+            .values(recipe_ingredients)
             .execute(x)
             .unwrap();
         Ok(())

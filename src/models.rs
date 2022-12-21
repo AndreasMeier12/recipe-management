@@ -155,7 +155,7 @@ pub struct RecipeIngredient {
 }
 
 
-#[derive(Insertable)]
+#[derive(Insertable, Hash, Eq, PartialEq)]
 #[diesel(table_name = recipe_ingredient)]
 pub struct InsertRecipeIngredient {
     pub recipe_id: i32,
