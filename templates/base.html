@@ -138,11 +138,17 @@
 
         }
 
-        .js-collapsible::after {
+        .js-collapse::after {
             content: "[+/-]"
         }
 
+        .js-collapsible {
+            padding-left: 10px;
+        }
 
+        .js-collapsible-inner {
+            padding-left: 30px;
+        }
     </style>
 
     {% block scripts %}{% endblock %}
@@ -150,7 +156,7 @@
     <script>
         addEventListener('DOMContentLoaded', (event) => {
 
-            let collapsibles = document.getElementsByClassName("js-collapsible");
+            let collapsibles = document.getElementsByClassName("js-collapse");
             for (const collapsible of collapsibles) {
                 collapsible.addEventListener('click', () => {
                     let child = collapsible.nextElementSibling

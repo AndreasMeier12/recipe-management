@@ -29,25 +29,26 @@
 
 {% block content%}
 {% for season in seasons %}
-<h1 class="js-collapsible">{{season.to_string()}} </h1>
-<div style="display: block">
+<h1 class="js-collapse">{{season.to_string()}} </h1>
+<div style="display: block" class="js-collapsible">
 
     {% for book in books %}
     {% let book_id = book.book_id.unwrap() %}
     {% if recipes_per_book_season.contains_key((season.value_rofl(), book_id)) %}
 
-    <h2 class="js-collapsible">{{ book.book_name.clone().unwrap()}} </h2>
-    <ul style="display: block">
+    <h2 class="js-collapse js-collapsible">{{ book.book_name.clone().unwrap()}} </h2>
+    <ul style="display: block" class="js-collapsible js-collapsible-inner">
         {% let opt_recipes = recipes_per_book_season.get((season.value_rofl(), book_id)) %}
 
         {% for recipe in opt_recipes.unwrap() %}
 
-    {% let cur_id = recipe.recipe_id.as_ref().unwrap() %}
-    {% let id_ref = (recipe.recipe_id.as_ref().unwrap()|asref) %}
-    {% let has_tried = tried.contains(id_ref) %}
-    <li><a href="/recipe/detail/{{recipe.recipe_id.as_ref().unwrap()}}"> {{ recipe.recipe_name.clone().unwrap() }} </a>
-        - {% if recipe.page.is_some() %} {{ recipe.page.unwrap() }} {% endif
-        %} {% if logged_in %}
+        {% let cur_id = recipe.recipe_id.as_ref().unwrap() %}
+        {% let id_ref = (recipe.recipe_id.as_ref().unwrap()|asref) %}
+        {% let has_tried = tried.contains(id_ref) %}
+        <li><a href="/recipe/detail/{{recipe.recipe_id.as_ref().unwrap()}}"> {{ recipe.recipe_name.clone().unwrap()
+            }} </a>
+            - {% if recipe.page.is_some() %} {{ recipe.page.unwrap() }} {% endif
+            %} {% if logged_in %}
         <button class="js-btn-tried {% if has_tried %} tried-true {% endif %} " data-id="{{cur_id}}"
                 id="js-btn-tried-{{cur_id}}"> {% if has_tried %} misclicked? {% else%} tried? {% endif %}
         </button>
