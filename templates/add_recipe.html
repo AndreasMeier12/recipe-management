@@ -5,6 +5,8 @@
 <form id="form" method="post">
     <label for="name">Name</label>
     <input id="name" name="name" required type="text"><br>
+    <label for="season">Season</label>
+
     <select id="season" name="season" required>
         {% for season in seasons %}
         <option {% if prefill.season.is_some() && prefill.season.unwrap()== season.value_rofl() %} selected {% endif %}
