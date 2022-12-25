@@ -99,7 +99,7 @@ pub struct SearchForm<'a> {
     pub seasons: Vec<ESeason>,
     pub recipes: Option<Vec<FullRecipe>>,
     pub title: &'a str,
-
+    pub recipes_to_ingredients: HashMap<i32, Vec<String>>,
     // in your template
 }
 

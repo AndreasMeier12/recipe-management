@@ -179,8 +179,9 @@ async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) ->
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
     use recipemanagement::schema::recipe::dsl::*;
-    let newest_recipe: FullRecipe = recipe.order(recipe_id.desc()).first::<FullRecipe>(con)
+    let newest_recipe: FullRecipe = recipe.order(recipemanagement::schema::recipe::recipe_id.desc()).first::<FullRecipe>(con)
         .unwrap();
+
 
     return Html(RecipeForm {
         seasons: ESeason::get_seasons(),
@@ -326,7 +327,7 @@ async fn search_form(session: ReadableSession) -> Response {
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None, title: "Search" }.get()).into_response();
+    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None, title: "Search", recipes_to_ingredients: Default::default() }.get()).into_response();
 }
 
 async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>) -> Response {
@@ -357,8 +358,32 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
         .load::<FullRecipe>(con)
         .ok().unwrap_or(vec![]);
 
+    use recipemanagement::schema::ingredient::dsl::*;
+    let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
+        .unwrap()
+        .iter()
+        .map(|x| (x.clone().id.unwrap(), x.name.clone().unwrap()))
+        .collect();
 
-    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: Some(recipes), title: "Search" }.get()).into_response();
+    use recipemanagement::schema::recipe_ingredient::dsl::*;
+    let recipes_to_ingredients = recipe_ingredient.load::<RecipeIngredient>(con)
+        .unwrap()
+        .iter()
+        .map(|x| (x.recipe_id, id_to_ingredients.get(&x.ingredient_id)))
+        .filter(|x| x.clone().1.is_some())
+        .map(|x| (x.clone().0, x.clone().1.unwrap().clone()))
+        .into_group_map();
+
+
+    return Html(SearchForm {
+        seasons: ESeason::get_seasons(),
+        books: &books,
+        courses: course_refs,
+        recipes: Some(recipes),
+        title: "Search",
+        recipes_to_ingredients,
+    }
+        .get()).into_response();
 }
 
 async fn login_page() -> Html<String> {
