@@ -183,10 +183,14 @@
             </li>
 
             {% endfor %}
+
+            {% if user_id.is_none() %}
             <li><a class="my-btn" href="/login">Log in</a></li>
+            {% else %}
             <li><a class="my-btn" href="/book/add">Add book</a></li>
             <li><a class="my-btn" href="/recipe/add">Add recipe</a></li>
             <li><a class="my-btn" href="/search">Search</a></li>
+            {% endif %}
 
         </ul>
     </nav>

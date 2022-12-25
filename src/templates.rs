@@ -17,6 +17,7 @@ pub struct HelloTemplate<'a> {
     pub courses: &'a Vec<QCourse>,
     // the field name should match the variable name
     pub title: &'a str,
+    pub user_id: Option<i32>,
     // in your template
 }
 
@@ -40,6 +41,7 @@ pub struct CourseTemplate<'a> {
     pub tried: HashSet<i32>,
     pub logged_in: bool,
     pub recipes_to_ingredients: HashMap<i32, Vec<String>>,
+    pub user_id: Option<i32>,
 
     // in your template
 }
@@ -57,6 +59,7 @@ impl<'a> CourseTemplate<'a> {
 pub struct BookForm<'a> {
     pub courses: &'a Vec<QCourse>,
     pub title: &'a str,
+    pub user_id: Option<i32>,
 
     // in your template
 }
@@ -77,6 +80,7 @@ pub struct RecipeForm<'a> {
     pub prefill: RecipePrefill,
     pub title: &'a str,
     pub newest: String,
+    pub user_id: Option<i32>,
 
 
     // in your template
@@ -100,6 +104,8 @@ pub struct SearchForm<'a> {
     pub recipes: Option<Vec<FullRecipe>>,
     pub title: &'a str,
     pub recipes_to_ingredients: HashMap<i32, Vec<String>>,
+    pub user_id: Option<i32>,
+
     // in your template
 }
 
@@ -114,6 +120,8 @@ impl<'a> SearchForm<'a> {
 pub struct LoginPage<'a> {
     pub courses: &'a Vec<QCourse>,
     pub title: &'a str,
+    pub user_id: Option<i32>,
+
     // in your template
 }
 
@@ -135,7 +143,7 @@ pub struct RecipeEditForm<'a> {
     pub seasons: Vec<ESeason>,
     pub prefill_season: usize,
     pub recipe_text: String,
-
+    pub user_id: Option<i32>,
     // in your template
 }
 
@@ -165,7 +173,7 @@ pub struct RecipeDetail<'a> {
     pub tried: bool,
     pub comments: Vec<Comment>,
     pub recipe_text: String,
-
+    pub user_id: Option<i32>,
 }
 
 impl<'a> RecipeDetail<'a> {

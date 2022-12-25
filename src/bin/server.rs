@@ -78,12 +78,18 @@ async fn main() {
         .unwrap();
 }
 
-async fn index_handler() -> Html<String> {
+async fn index_handler(session: ReadableSession) -> Html<String> {
     let con = &mut database::establish_connection();
+    let maybe_user_id: Option<i32> = session.get::<i32>("user_id");
     use recipemanagement::schema::course::dsl::*;
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
-    let hello = HelloTemplate { name: "world", courses: course_refs.clone(), title: "roflcopter" }; // instantiate your struct
+    let hello = HelloTemplate {
+        name: "world",
+        courses: course_refs.clone(),
+        title: "roflcopter",
+        user_id: maybe_user_id,
+    }; // instantiate your struct
     let a = hello.get();
 
     return Html(a);
@@ -158,6 +164,7 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
         tried: tried_ids,
         logged_in: maybe_user_id.is_some(),
         recipes_to_ingredients: recipes_to_ingredients,
+        user_id: maybe_user_id,
     }.get();
 
     return Html(content);
@@ -190,6 +197,7 @@ async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) ->
         prefill: prefill.0,
         title: "Add Recipe",
         newest: newest_recipe.recipe_name.unwrap(),
+        user_id: maybe_user_id,
     }
         .get()
     )
@@ -278,7 +286,11 @@ async fn book_form(session: ReadableSession) -> Response {
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(BookForm { courses: course_refs, title: "Add book" }.get()).into_response();
+    return Html(BookForm {
+        courses: course_refs,
+        title: "Add book",
+        user_id: maybe_user_id,
+    }.get()).into_response();
 }
 
 async fn post_book(session: ReadableSession, Form(form): Form<PostBook>) -> Redirect {
@@ -327,7 +339,15 @@ async fn search_form(session: ReadableSession) -> Response {
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    return Html(SearchForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, recipes: None, title: "Search", recipes_to_ingredients: Default::default() }.get()).into_response();
+    return Html(SearchForm {
+        seasons: ESeason::get_seasons(),
+        books: &books,
+        courses: course_refs,
+        recipes: None,
+        title: "Search",
+        recipes_to_ingredients: Default::default(),
+        user_id: maybe_user_id,
+    }.get()).into_response();
 }
 
 async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>) -> Response {
@@ -382,15 +402,21 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
         recipes: Some(recipes),
         title: "Search",
         recipes_to_ingredients,
+        user_id: maybe_user_id,
     }
         .get()).into_response();
 }
 
-async fn login_page() -> Html<String> {
+async fn login_page(session: ReadableSession) -> Html<String> {
     let con = &mut database::establish_connection();
+    let maybe_user_id = session.get::<i32>("user_id");
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
-    return Html(LoginPage { courses: &courses, title: "Login" }.get());
+    return Html(LoginPage {
+        courses: &courses,
+        title: "Login",
+        user_id: maybe_user_id,
+    }.get());
 }
 
 #[derive(Deserialize)]
@@ -472,6 +498,7 @@ WHERE recipe_id={}", path);
         seasons: ESeason::get_seasons(),
         prefill_season: prefill_season,
         recipe_text: recipe_text_disp,
+        user_id: maybe_user_id,
     }.get())
         .into_response();
 }
@@ -766,6 +793,7 @@ async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Respo
             tried: x.tried,
             comments: x.comments,
             recipe_text: x.recipe_text,
+            user_id: maybe_user_id,
         }.get())
         .unwrap_or("404".to_string())
     ).into_response();
