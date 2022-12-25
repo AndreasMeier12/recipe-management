@@ -160,9 +160,20 @@ async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) ->
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
+    use recipemanagement::schema::recipe::dsl::*;
+    let newest_recipe: FullRecipe = recipe.order(recipe_id.desc()).first::<FullRecipe>(con)
+        .unwrap();
 
-
-    return Html(RecipeForm { seasons: ESeason::get_seasons(), books: &books, courses: course_refs, prefill: prefill.0, title: "Add Recipe" }.get())
+    return Html(RecipeForm {
+        seasons: ESeason::get_seasons(),
+        books: &books,
+        courses: course_refs,
+        prefill: prefill.0,
+        title: "Add Recipe",
+        newest: newest_recipe.recipe_name.unwrap(),
+    }
+        .get()
+    )
         .into_response();
 }
 

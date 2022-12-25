@@ -75,6 +75,7 @@ pub struct RecipeForm<'a> {
     pub seasons: Vec<ESeason>,
     pub prefill: RecipePrefill,
     pub title: &'a str,
+    pub newest: String,
 
 
     // in your template
