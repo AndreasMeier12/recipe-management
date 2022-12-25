@@ -4,7 +4,7 @@
 {% block content%}
 <form id="form" method="post">
     <label for="name">Name</label>
-    <input id="name" name="name" required type="text">
+    <input id="name" name="name" required type="text"><br>
     <select id="season" name="season" required>
         {% for season in seasons %}
         <option {% if prefill.season.is_some() && prefill.season.unwrap()== season.value_rofl() %} selected {% endif %}
@@ -12,31 +12,35 @@
         </option>
         {% endfor %}
 
-    </select>
+    </select><br>
     <label for="course">Course</label>
 
     <select id="course" name="course" required>
         {% for course in courses %}
-        <option {% if prefill.course.is_some() && course.course_id.unwrap()  ==  prefill.course.unwrap() %} selected {% endif %}
+        <option {% if prefill.course.is_some() && course.course_id.unwrap()== prefill.course.unwrap() %} selected {%
+                endif %}
                 value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
-    </select>
+    </select><br>
     <label for="book">Book</label>
     <select id="book" name="book">
         <option value="0"></option>
         {% for book in books%}
-        <option {% if prefill.book.is_some() && book.book_id.unwrap() ==  prefill.book.unwrap() %} selected {% endif %}
+        <option {% if prefill.book.is_some() && book.book_id.unwrap()== prefill.book.unwrap() %} selected {% endif %}
                 value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
-    </select>
+    </select><br>
 
     <label for="url">URL</label>
-    <input id="url" name="url" type="text">
+    <input id="url" name="url" type="text"><br>
 
     <label for="page">Page</label>
-    <input id="page" name="page" type="number">
+    <input id="page" name="page" type="number"><br>
+
+    <label for="ingredients">Ingredients</label>
+    <textarea name="ingredients"></textarea><br>
 
 
     <input type="submit" value="form">

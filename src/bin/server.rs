@@ -25,7 +25,7 @@ use diesel::dsl::{exists, max, sql};
 use diesel::internal::operators_macro::FieldAliasMapper;
 use diesel::prelude::*;
 use diesel::result::Error;
-use diesel::sql_types::BoolOrNullableBool;
+use diesel::sql_types::{BoolOrNullableBool, Integer, Text};
 use itertools::Itertools;
 use rand::Rng;
 use serde::Deserialize;
@@ -175,6 +175,7 @@ struct PostRecipe {
     url: Option<String>,
     page: Option<String>,
     recipe_text: Option<String>,
+    ingredients: Option<String>,
 
 }
 
@@ -184,16 +185,46 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
         return Redirect::to("/login").into_response();
     }
     let con = &mut database::establish_connection();
-    use recipemanagement::schema::recipe;
+
     let book_id = form.book.map(|x| x.parse::<i32>()).unwrap_or(Ok(0)).ok();
     let page = form.page.map(|x| x.parse::<i32>()).unwrap_or(Ok(0)).ok();
+    let recipe_struct = InsertRecipe { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page };
+    con.transaction::<_, Error, _>(|x| {
+        use recipemanagement::schema::recipe;
+        diesel::insert_into(recipemanagement::schema::recipe::table)
+            .values(vec![recipe_struct])
+            .execute(x)
+            .unwrap();
 
-    let recipe = InsertRecipe { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page };
+        use recipemanagement::schema::recipe::dsl::*;
+        let cur_recipe_id: i32 = recipe.order(recipe_id.desc()).first::<FullRecipe>(x)
+            .unwrap()
+            .recipe_id
+            .unwrap();
 
-    diesel::insert_into(recipe::table)
-        .values(vec![recipe])
-        .execute(con)
-        .unwrap();
+        let ingredient_string = form.ingredients.unwrap_or("".to_string());
+        let ingredients_insert_vals: Vec<String> = ingredient_string.clone()
+            .split("\n")
+            .into_iter()
+            .map(|y| format!("{}", y.trim()))
+            .collect();
+        let ingredients_relation_insert_vals: String = ingredient_string.clone()
+            .split("\n")
+            .into_iter()
+            .map(|y| format!("'{}'", y.trim()))
+            .join(",");
+        for val in ingredients_insert_vals.iter() {
+            diesel::sql_query("INSERT OR IGNORE into  ingredient(name) values (?);")
+                .bind::<Text, _>(val.clone())
+                .execute(x);
+            let res = diesel::sql_query("INSERT OR IGNORE INTO recipe_ingredient(recipe_id, ingredient_id)  SELECT ?, id FROM ingredient where lower(name)=?;")
+                .bind::<Integer, _>(cur_recipe_id)
+                .bind::<Text, _>(val.clone())
+                .execute(x);
+        }
+        return Ok(());
+    }
+    ).unwrap();
     let url = format!("/recipe/add?season={}&course={}&book={}", form.season, form.course, book_id.unwrap_or(0));
 
 
