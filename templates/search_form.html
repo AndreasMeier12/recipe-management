@@ -55,6 +55,9 @@
 <ul>
     {% for recipe in recipes.as_ref().unwrap() %}
     <li><a href="/recipe/detail/{{recipe.recipe_id.as_ref().unwrap()}}">{{recipe.recipe_name.as_ref().unwrap()}}</a>
+        {% if recipe.recipe_url.as_ref().is_some() %} - <a href="//{{recipe.recipe_url.as_ref().unwrap()}}">Link</a> {%
+        endif %}
+
     </li>
     {% endfor %}
 </ul>
