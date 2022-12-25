@@ -90,11 +90,11 @@ async fn index_handler() -> Html<String> {
 }
 
 async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Html<String> {
-    let name = path.as_str();
+    let cur_name = path.as_str();
     let con = &mut database::establish_connection();
     use recipemanagement::schema::course::dsl::*;
     let reses = &course
-        .filter(course_name.eq(name))
+        .filter(course_name.eq(cur_name))
         .load::<QCourse>(con)
         .unwrap();
     let res = &reses
@@ -131,15 +131,33 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
         tried_ids = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
     }
 
+    use recipemanagement::schema::ingredient::dsl::*;
+    let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
+        .unwrap()
+        .iter()
+        .map(|x| (x.clone().id.unwrap(), x.name.clone().unwrap()))
+        .collect();
+
+    use recipemanagement::schema::recipe_ingredient::dsl::*;
+    let recipes_to_ingredients = recipe_ingredient.load::<RecipeIngredient>(con)
+        .unwrap()
+        .iter()
+        .map(|x| (x.recipe_id, id_to_ingredients.get(&x.ingredient_id)))
+        .filter(|x| x.clone().1.is_some())
+        .map(|x| (x.clone().0, x.clone().1.unwrap().clone()))
+        .into_group_map();
+
+
     let content = CourseTemplate {
         course_name: asdf.course_name.as_ref().unwrap().as_str(),
         seasons: ESeason::get_seasons(),
         recipes_per_book_season: recipes_per_book_season,
         books: &books,
         courses: course_refs,
-        title: name,
+        title: cur_name,
         tried: tried_ids,
         logged_in: maybe_user_id.is_some(),
+        recipes_to_ingredients: recipes_to_ingredients,
     }.get();
 
     return Html(content);

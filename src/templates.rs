@@ -39,6 +39,7 @@ pub struct CourseTemplate<'a> {
     pub title: &'a str,
     pub tried: HashSet<i32>,
     pub logged_in: bool,
+    pub recipes_to_ingredients: HashMap<i32, Vec<String>>,
 
     // in your template
 }
