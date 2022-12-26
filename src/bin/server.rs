@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::RandomState;
@@ -20,6 +23,7 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum_sessions::{async_session::MemoryStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
 use axum_sessions::async_session::blake3::Hash;
 use axum_sessions::async_session::blake3::IncrementCounter::No;
+use axum_sessions::async_session::log::trace;
 use diesel::{select, sql_query};
 use diesel::dsl::{exists, max, sql};
 use diesel::internal::operators_macro::FieldAliasMapper;
@@ -30,6 +34,7 @@ use itertools::Itertools;
 use rand::Rng;
 use serde::Deserialize;
 
+use env_logger::Env;
 use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill, SearchRecipe};
 use recipemanagement::models::*;
@@ -40,6 +45,7 @@ use recipemanagement::schema::ingredient::dsl::ingredient;
 use recipemanagement::schema::recipe::primary_season;
 use recipemanagement::schema::recipe_ingredient::recipe_id;
 use recipemanagement::templates::*;
+
 
 #[tokio::main]
 async fn main() {
@@ -52,6 +58,13 @@ async fn main() {
     let store = MemoryStore::new();
     let secret = rand::thread_rng().gen::<[u8; 128]>();
     let session_layer = SessionLayer::new(store, &secret);
+
+    let env = Env::default()
+        .filter_or("MY_LOG_LEVEL", "trace")
+        .write_style_or("MY_LOG_STYLE", "always");
+
+    env_logger::init_from_env(env);
+
 
     let app = Router::new().route("/", get(index_handler))
         .route("/course/:name", get(handle_course))
@@ -223,6 +236,7 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
         return Redirect::to("/login").into_response();
     }
     let con = &mut database::establish_connection();
+    trace!("Adding {} with ingrdients: {}", form.name.clone(), form.ingredients.clone().unwrap_or("-".to_string()));
 
     let book_id = form.book.map(|x| x.parse::<i32>()).unwrap_or(Ok(0)).ok();
     let page = form.page.map(|x| x.parse::<i32>()).unwrap_or(Ok(0)).ok();
