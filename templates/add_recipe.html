@@ -31,7 +31,7 @@
     </select><br>
     <label for="book">Book</label>
     <select id="book" name="book">
-        <option value="0"></option>
+        <option value="-1"></option>
         {% for book in books%}
         <option {% if prefill.book.is_some() && book.book_id.unwrap()== prefill.book.unwrap() %} selected {% endif %}
                 value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
@@ -39,8 +39,8 @@
         {% endfor %}
     </select><br>
 
-    <label for="url">URL</label>
-    <input id="url" name="url" type="text"><br>
+    <label for="recipe_url">URL</label>
+    <input id="recipe_url" name="recipe_url" type="text"><br>
 
     <label for="page">Page</label>
     <input id="page" name="page" type="number"><br>

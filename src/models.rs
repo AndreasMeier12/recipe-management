@@ -40,6 +40,18 @@ pub struct InsertRecipe {
     pub recipe_id: Option<i32>,
 }
 
+#[derive(Insertable)]
+#[diesel(table_name = recipe)]
+pub struct InsertRecipeWithUrl {
+    pub primary_season: i32,
+    pub course_id: i32,
+    pub book_id: Option<i32>,
+    pub recipe_name: String,
+    pub page: Option<i32>,
+    pub recipe_id: Option<i32>,
+    pub recipe_url: Option<String>,
+}
+
 
 #[derive(Insertable)]
 #[diesel(table_name = recipe)]
