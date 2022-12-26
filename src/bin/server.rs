@@ -34,7 +34,9 @@ use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
 use rand::Rng;
+use regex::Regex;
 use serde::Deserialize;
+use url::{ParseError, Url};
 
 use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill, SearchRecipe};
@@ -165,6 +167,35 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
         .map(|x| (x.recipe_id, id_to_ingredients.get(&x.ingredient_id)))
         .filter(|x| x.clone().1.is_some())
         .map(|x| (x.clone().0, x.clone().1.unwrap().clone()))
+        .into_group_map();
+
+    let external_web_recipes: Vec<FullRecipe> = recipes.iter()
+        .filter(|x| x.book_id.as_ref().is_none() && x.recipe_url.as_ref().is_some())
+        .map(|x| x.clone())
+        .collect();
+    let web_pages: HashSet<String> = HashSet::from_iter(external_web_recipes.iter()
+        .map(|x| Url::parse(x.recipe_url.as_ref().unwrap()))
+        .filter(|x| x.is_ok())
+        .map(|x| x.unwrap())
+        .map(|x| x.clone().domain().map(|y| y.to_string()))
+        .filter(|x| x.is_some())
+        .map(|x| x.unwrap())
+    );
+    let mut recipes_by_season_and_page: HashMap<i32, (String, Vec<FullRecipe>)> = HashMap::new();
+    for season in ESeason::get_seasons() {
+        for web_page in web_pages.clone() {
+            let temp = external_web_recipes.iter()
+                .filter(|x| x.recipe_url.as_ref().filter(|y| y.contains(web_page.as_str())).is_some())
+                .filter(|x| x.primary_season == season.value_rofl() as i32)
+                .map(|x| x.clone())
+                .collect();
+            recipes_by_season_and_page.insert(season.value_rofl() as i32, (web_page, temp));
+        }
+    }
+
+    let only_here = recipes.iter()
+        .filter(|x| x.book_id.as_ref().is_none() && x.recipe_url.as_ref().is_none())
+        .map(|x| (x.primary_season, x))
         .into_group_map();
 
 
