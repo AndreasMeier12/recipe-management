@@ -60,7 +60,7 @@ async fn main() {
     let session_layer = SessionLayer::new(store, &secret);
 
     let env = Env::default()
-        .filter_or("MY_LOG_LEVEL", "trace")
+        .filter_or("MY_LOG_LEVEL", "debug")
         .write_style_or("MY_LOG_STYLE", "always");
 
     env_logger::init_from_env(env);
