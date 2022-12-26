@@ -131,7 +131,7 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
     let recipes: Vec<FullRecipe> = recipe.filter(recipemanagement::schema::recipe::course_id.eq(res)).load::<FullRecipe>(con).unwrap();
     use recipemanagement::schema::book::dsl::*;
 
-    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap().into_iter().sorted_by(|x, y| x.book_name.as_ref().unwrap().cmp(y.book_name.as_ref().unwrap())).collect();
     let id_to_book: HashMap<i32, QBook> = books.iter().map(|x| (x.book_id.unwrap(), x.clone())).collect();
     let season_map = ESeason::to_map();
     let recipes_per_book_season: HashMap<(usize, i32), Vec<&FullRecipe>> = recipes.iter()
@@ -265,7 +265,7 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
             .into_iter()
             .map(|y| format!("'{}'", y.trim()))
             .join(",");
-        for val in ingredients_insert_vals.iter() {
+        for val in ingredients_insert_vals.iter().filter(|x| !(x.trim().is_empty())) {
             diesel::sql_query("INSERT OR IGNORE into  ingredient(name) values (?);")
                 .bind::<Text, _>(val.clone())
                 .execute(x);
