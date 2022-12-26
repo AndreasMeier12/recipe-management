@@ -59,7 +59,7 @@
         endif %}
         {% let ingredients = recipes_to_ingredients.get(recipe.recipe_id.as_ref().unwrap()) %}
         {% if ingredients.is_some()%}
-        <span class="js-collapse">Ingredients</span>
+        <span class="js-collapse js-neighborino-collapsed">Ingredients</span>
         <ul class="js-collapsible" style="display: none">
             {% for ingredient in ingredients.unwrap() %}
             <li>{{ingredient}}</li>

@@ -29,14 +29,14 @@
 
 {% block content%}
 {% for season in seasons %}
-<h1 class="js-collapse">{{season.to_string()}} </h1>
+<h1 class="js-collapse js-neighborino-visible">{{season.to_string()}} </h1>
 <div style="display: block" class="js-collapsible">
 
     {% for book in books %}
     {% let book_id = book.book_id.unwrap() %}
     {% if recipes_per_book_season.contains_key((season.value_rofl(), book_id)) %}
 
-    <h2 class="js-collapse js-collapsible">{{ book.book_name.clone().unwrap()}} </h2>
+    <h2 class="js-collapse js-collapsible js-neighborino-visible">{{ book.book_name.clone().unwrap()}} </h2>
     <ul style="display: block" class="js-collapsible js-collapsible-inner">
         {% let opt_recipes = recipes_per_book_season.get((season.value_rofl(), book_id)) %}
 
@@ -57,7 +57,7 @@
             {% endif %}
             {% let ingredients = recipes_to_ingredients.get(recipe.recipe_id.as_ref().unwrap()) %}
             {% if ingredients.is_some()%}
-            <span class="js-collapse">Ingredients</span>
+            <span class="js-collapse js-neighborino-collapsed">Ingredients</span>
             <ul class="js-collapsible" style="display: none">
                 {% for ingredient in ingredients.unwrap() %}
                 <li>{{ingredient}}</li>

@@ -150,8 +150,12 @@
 
         }
 
-        .js-collapse::after {
-            content: "[+/-]"
+        .js-neighborino-collapsed::after {
+            content: "[+]"
+        }
+
+        .js-neighborino-visible::after {
+            content: "[-]"
         }
 
         .js-collapsible {
@@ -176,6 +180,14 @@
                         child.style.display = 'none'
                     } else {
                         child.style.display = 'block'
+                    }
+
+                    if (collapsible.classList.contains("js-neighborino-visible")) {
+                        collapsible.classList.remove("js-neighborino-visible");
+                        collapsible.classList.add("js-neighborino-collapsed")
+                    } else {
+                        collapsible.classList.add("js-neighborino-visible");
+                        collapsible.classList.remove("js-neighborino-collapsed")
                     }
 
                 })
