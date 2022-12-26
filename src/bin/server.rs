@@ -281,7 +281,7 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
                 .execute(x);
             let res = diesel::sql_query("INSERT OR IGNORE INTO recipe_ingredient(recipe_id, ingredient_id)  SELECT ?, id FROM ingredient where lower(name)=?;")
                 .bind::<Integer, _>(cur_recipe_id)
-                .bind::<Text, _>(val.clone())
+                .bind::<Text, _>(val.clone().to_lowercase())
                 .execute(x);
         }
         return Ok(());
