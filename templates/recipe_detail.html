@@ -1,5 +1,32 @@
 {% extends "base.html" %}
 
+
+{% block scripts %}
+<script>
+    addEventListener('DOMContentLoaded', (event) => {
+        let btns = document.getElementsByClassName("js-btn-tried");
+        for (const btn of btns) {
+            let recipeId = btn.dataset.id
+            btn.addEventListener('click', () => {
+                fetch('/api/tried/' + recipeId, {
+                    method: 'POST'
+                }).then(
+                    () => {
+                        if (btn.classList.contains("tried-yes")) {
+                            btn.classList.remove("tried-yes")
+                            btn.innerHTML = "❌"
+                        } else {
+                            btn.classList.add("tried-yes")
+                            btn.innerHTML = "✅"
+                        }
+                    }
+                )
+            })
+        }
+    });
+</script>
+{% endblock %}
+
 {% block content %}
 <h1>{{recipe.recipe_name.as_ref().unwrap()}}</h1>
 <table id="table-recipe-detail">
@@ -27,7 +54,10 @@
     </tr>
     <tr>
         <th>Tried</th>
-        <td>{% if tried %}✅{% else %}❌{% endif %}</td>
+        <td data-id="{{recipe.recipe_id.unwrap()}}"
+            class="js-btn-tried {% if tried %}tried-yes{% else %}not-tried{% endif %}">{% if tried %}✅{% else %}❌{%
+            endif %}
+        </td>
     </tr>
 
     <div>
