@@ -25,7 +25,7 @@
 
     <label for="book">Book</label>
     <select id="book" name="book">
-        <option value="0"></option>
+        <option value="-1"></option>
         {% for book in books%}
         <option {% if recipe.book_id.as_ref().is_some() && book.book_id.as_ref().unwrap()==
                 recipe.book_id.as_ref().unwrap() %} selected {% endif %}
