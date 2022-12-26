@@ -30,11 +30,12 @@ use diesel::internal::operators_macro::FieldAliasMapper;
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::{BoolOrNullableBool, Integer, Text};
+use diesel_logger::LoggingConnection;
+use env_logger::Env;
 use itertools::Itertools;
 use rand::Rng;
 use serde::Deserialize;
 
-use env_logger::Env;
 use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill, SearchRecipe};
 use recipemanagement::models::*;
@@ -45,7 +46,6 @@ use recipemanagement::schema::ingredient::dsl::ingredient;
 use recipemanagement::schema::recipe::primary_season;
 use recipemanagement::schema::recipe_ingredient::recipe_id;
 use recipemanagement::templates::*;
-
 
 #[tokio::main]
 async fn main() {
@@ -697,7 +697,7 @@ fn test(id_to_ingredient: HashMap<i32, String>) {
 pub struct RecipeEditQuery {}
 
 
-fn query_for_recipe_detail<'a, 'b>(con: &mut SqliteConnection, path: i32, cur_user_id: i32) -> Result<Option<RecipeDetailQuery>, Error> {
+fn query_for_recipe_detail<'a, 'b>(con: &mut LoggingConnection<SqliteConnection>, path: i32, cur_user_id: i32) -> Result<Option<RecipeDetailQuery>, Error> {
     use recipemanagement::schema::recipe::dsl::*;
 
     let query = recipe
