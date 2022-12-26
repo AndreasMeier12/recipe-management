@@ -254,6 +254,15 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
             .recipe_id
             .unwrap();
 
+        if form.recipe_text.as_ref().filter(|x| !(x.trim()).is_empty()).is_some() {
+            let edit_recipe_text = InsertRecipeText { recipe_id: cur_recipe_id, content: form.recipe_text.unwrap() };
+            use recipemanagement::schema::recipe_text::dsl::*;
+            diesel::replace_into(recipe_text)
+                .values(vec![edit_recipe_text])
+                .execute(x)
+                .unwrap();
+        }
+
         let ingredient_string = form.ingredients.unwrap_or("".to_string());
         let ingredients_insert_vals: Vec<String> = ingredient_string.clone()
             .split("\n")
