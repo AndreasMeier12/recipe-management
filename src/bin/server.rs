@@ -100,7 +100,7 @@ async fn index_handler(session: ReadableSession) -> Html<String> {
     let hello = HelloTemplate {
         name: "world",
         courses: course_refs.clone(),
-        title: "roflcopter",
+        title: "Recipes",
         user_id: maybe_user_id,
     }; // instantiate your struct
     let a = hello.get();
