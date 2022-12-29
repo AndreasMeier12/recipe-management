@@ -580,6 +580,8 @@ async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form):
                 .split("\n")
                 .map(|x| x.trim())
                 .map(|x| x.to_string())
+                .map(|x| x.to_lowercase())
+                .unique()
                 .collect();
 
 
