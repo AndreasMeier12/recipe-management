@@ -568,7 +568,7 @@ async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form):
             course_id: form.course,
             created_at: old_recipe.created_at,
             page: page_res,
-            book_id: form.book.filter(|x| x > 0),
+            book_id: form.book.filter(|x| *x >= 0),
         };
 
         diesel::replace_into(recipe)
