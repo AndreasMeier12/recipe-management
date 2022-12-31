@@ -2,7 +2,8 @@
 
 
 {% block content%}
-<p>Newest recipe: {% if newest.as_ref().is_some() %}{{newest.as_ref().unwrap().recipe_name.as_ref().unwrap()}}{%
+<p>Newest recipe: {% if newest.as_ref().is_some() %}<a
+        href="/recipe/edit/{{newest.as_ref().unwrap().recipe_id.as_ref().unwrap()}}">{{newest.as_ref().unwrap().recipe_name.as_ref().unwrap()}}</a>{%
     else%}-{% endif %}</p>
 
 <form id="form" method="post">
