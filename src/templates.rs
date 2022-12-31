@@ -79,7 +79,7 @@ pub struct RecipeForm<'a> {
     pub seasons: Vec<ESeason>,
     pub prefill: RecipePrefill,
     pub title: &'a str,
-    pub newest: String,
+    pub newest: Option<FullRecipe>,
     pub user_id: Option<i32>,
 
 

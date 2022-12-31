@@ -200,8 +200,8 @@ async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) ->
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
     use recipemanagement::schema::recipe::dsl::*;
-    let newest_recipe: FullRecipe = recipe.order(recipemanagement::schema::recipe::recipe_id.desc()).first::<FullRecipe>(con)
-        .unwrap();
+    let newest_recipe: Option<FullRecipe> = recipe.order(recipemanagement::schema::recipe::recipe_id.desc()).first::<FullRecipe>(con)
+        .ok();
 
 
     return Html(RecipeForm {
@@ -210,7 +210,7 @@ async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) ->
         courses: course_refs,
         prefill: prefill.0,
         title: "Add Recipe",
-        newest: newest_recipe.recipe_name.unwrap(),
+        newest: newest_recipe,
         user_id: maybe_user_id,
     }
         .get()

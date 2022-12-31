@@ -2,7 +2,8 @@
 
 
 {% block content%}
-<p>Newest recipe: {{newest}}</p>
+<p>Newest recipe: {% if newest.as_ref().is_some() %}{{newest.as_ref().unwrap().recipe_name.as_ref().unwrap()}}{%
+    else%}-{% endif %}</p>
 
 <form id="form" method="post">
     <label for="name">Name</label>
