@@ -1,6 +1,6 @@
 # Installing diesel
 
-cargo install diesel_cli --no-default-features --features postgres
+cargo install diesel_cli --no-default-features --features sqlite
 
 # Setting up Database
 
