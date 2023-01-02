@@ -31,7 +31,7 @@
     </select><br>
     <label for="book">Book</label>
     <select id="book" name="book">
-        <option value="-1"></option>
+        <option value="-1" {% if prefill.book.as_ref().is_none() %}selected{% endif %}>-</option>
         {% for book in books%}
         <option {% if prefill.book.is_some() && book.book_id.unwrap()== prefill.book.unwrap() %} selected {% endif %}
                 value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}

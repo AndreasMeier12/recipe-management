@@ -198,7 +198,7 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
 
         let here_temp: Vec<FullRecipe> = recipes.iter()
             .filter(|x| x.book_id.is_none())
-            .filter(|x| x.recipe_url.is_none())
+            .filter(|x| x.recipe_url.as_ref().filter(|x| !x.trim().is_empty()).is_none())
             .filter(|x| x.primary_season == season.value_rofl() as i32)
             .map(|x| x.clone())
             .collect();
@@ -281,7 +281,7 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
     let con = &mut database::establish_connection();
     trace!("Adding {} with ingrdients: {}", form.name.clone(), form.ingredients.clone().unwrap_or("-".to_string()));
 
-    let book_id = form.book.map(|x| x.parse::<i32>()).and_then(|x| x.ok()).filter(|x| *x > 0);
+    let book_id = form.book.map(|x| x.parse::<i32>()).and_then(|x| x.ok()).filter(|x| *x >= 0);
     let page = form.page.map(|x| x.parse::<i32>()).and_then(|x| x.ok());
     let recipe_struct = InsertRecipeWithUrl { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page, recipe_url: form.recipe_url };
     con.transaction::<_, Error, _>(|x| {
