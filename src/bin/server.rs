@@ -311,6 +311,7 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
             .split("\n")
             .into_iter()
             .map(|y| format!("{}", y.trim()))
+            .filter(|x| !x.is_empty())
             .collect();
         for val in ingredients_insert_vals.iter().filter(|x| !(x.trim().is_empty())) {
             diesel::sql_query("INSERT OR IGNORE into  ingredient(name) values (?);")
