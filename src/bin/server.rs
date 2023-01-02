@@ -312,11 +312,6 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
             .into_iter()
             .map(|y| format!("{}", y.trim()))
             .collect();
-        let ingredients_relation_insert_vals: String = ingredient_string.clone()
-            .split("\n")
-            .into_iter()
-            .map(|y| format!("'{}'", y.trim()))
-            .join(",");
         for val in ingredients_insert_vals.iter().filter(|x| !(x.trim().is_empty())) {
             diesel::sql_query("INSERT OR IGNORE into  ingredient(name) values (?);")
                 .bind::<Text, _>(val.clone().to_lowercase())
