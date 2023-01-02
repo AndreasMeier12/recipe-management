@@ -36,13 +36,12 @@ pub struct CourseTemplate<'a> {
     pub books: &'a Vec<QBook>,
     pub course_name: &'a str,
     pub seasons: Vec<ESeason>,
-    pub recipes_per_book_season: HashMap<(usize, i32), Vec<&'a FullRecipe>>,
     pub title: &'a str,
     pub tried: HashSet<i32>,
     pub logged_in: bool,
     pub recipes_to_ingredients: HashMap<i32, Vec<String>>,
     pub user_id: Option<i32>,
-
+    pub recipes_by_season_and_source: Vec<(ESeason, Vec<(String, Vec<FullRecipe>)>)>,
     // in your template
 }
 

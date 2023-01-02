@@ -36,7 +36,6 @@ use itertools::Itertools;
 use rand::Rng;
 use regex::Regex;
 use serde::Deserialize;
-use url::{ParseError, Url};
 
 use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill, SearchRecipe};
@@ -47,6 +46,7 @@ use recipemanagement::schema::course::dsl::course;
 use recipemanagement::schema::ingredient::dsl::ingredient;
 use recipemanagement::schema::recipe::primary_season;
 use recipemanagement::schema::recipe_ingredient::recipe_id;
+use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
 
 #[tokio::main]
@@ -134,12 +134,6 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
     use recipemanagement::schema::book::dsl::*;
 
     let books: Vec<QBook> = book.load::<QBook>(con).unwrap().into_iter().sorted_by(|x, y| x.book_name.as_ref().unwrap().cmp(y.book_name.as_ref().unwrap())).collect();
-    let id_to_book: HashMap<i32, QBook> = books.iter().map(|x| (x.book_id.unwrap(), x.clone())).collect();
-    let season_map = ESeason::to_map();
-    let recipes_per_book_season: HashMap<(usize, i32), Vec<&FullRecipe>> = recipes.iter()
-        .filter(|x| x.book_id.is_some())
-        .map(|x| ((x.primary_season as usize, x.book_id.unwrap()), x))
-        .into_group_map();
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
@@ -174,35 +168,50 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
         .map(|x| x.clone())
         .collect();
     let web_pages: HashSet<String> = HashSet::from_iter(external_web_recipes.iter()
-        .map(|x| Url::parse(x.recipe_url.as_ref().unwrap()))
-        .filter(|x| x.is_ok())
-        .map(|x| x.unwrap())
-        .map(|x| x.clone().domain().map(|y| y.to_string()))
-        .filter(|x| x.is_some())
-        .map(|x| x.unwrap())
-    );
-    let mut recipes_by_season_and_page: HashMap<i32, (String, Vec<FullRecipe>)> = HashMap::new();
+        .map(|x| extract_domain(x.recipe_url.clone().unwrap())));
+    let mut recipes_by_season_and_source: Vec<(ESeason, Vec<(String, Vec<FullRecipe>)>)> = vec![];
     for season in ESeason::get_seasons() {
+        let mut vals: Vec<(String, Vec<FullRecipe>)> = vec![];
+        for lol_book in books.clone() {
+            let temp: Vec<FullRecipe> = recipes.iter()
+                .filter(|x| x.book_id.filter(|y| *y == lol_book.book_id.unwrap()).is_some())
+                .filter(|x| x.primary_season == season.value_rofl() as i32)
+                .map(|x| x.clone())
+                .collect();
+            if !temp.is_empty() {
+                vals.push((lol_book.book_name.unwrap(), temp));
+            }
+        }
+
         for web_page in web_pages.clone() {
-            let temp = external_web_recipes.iter()
+            let temp: Vec<FullRecipe> = recipes.iter()
+                .filter(|x| x.book_id.is_none())
                 .filter(|x| x.recipe_url.as_ref().filter(|y| y.contains(web_page.as_str())).is_some())
                 .filter(|x| x.primary_season == season.value_rofl() as i32)
                 .map(|x| x.clone())
                 .collect();
-            recipes_by_season_and_page.insert(season.value_rofl() as i32, (web_page, temp));
+            if !temp.is_empty() {
+                vals.push((web_page, temp));
+            }
         }
+
+
+        let here_temp: Vec<FullRecipe> = recipes.iter()
+            .filter(|x| x.book_id.is_none())
+            .filter(|x| x.recipe_url.is_none())
+            .filter(|x| x.primary_season == season.value_rofl() as i32)
+            .map(|x| x.clone())
+            .collect();
+        if !here_temp.is_empty() {
+            vals.push(("Here".to_string(), here_temp))
+        }
+
+        recipes_by_season_and_source.push((season, vals));
     }
-
-    let only_here = recipes.iter()
-        .filter(|x| x.book_id.as_ref().is_none() && x.recipe_url.as_ref().is_none())
-        .map(|x| (x.primary_season, x))
-        .into_group_map();
-
 
     let content = CourseTemplate {
         course_name: asdf.course_name.as_ref().unwrap().as_str(),
         seasons: ESeason::get_seasons(),
-        recipes_per_book_season: recipes_per_book_season,
         books: &books,
         courses: course_refs,
         title: cur_name,
@@ -210,6 +219,7 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
         logged_in: maybe_user_id.is_some(),
         recipes_to_ingredients: recipes_to_ingredients,
         user_id: maybe_user_id,
+        recipes_by_season_and_source,
     }.get();
 
     return Html(content);
