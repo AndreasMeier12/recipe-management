@@ -168,6 +168,7 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
         .map(|x| x.clone())
         .collect();
     let web_pages: HashSet<String> = HashSet::from_iter(external_web_recipes.iter()
+        .filter(|x| x.recipe_url.as_ref().filter(|y| !y.trim().is_empty()).is_some())
         .map(|x| extract_domain(x.recipe_url.clone().unwrap())));
     let mut recipes_by_season_and_source: Vec<(ESeason, Vec<(String, Vec<FullRecipe>)>)> = vec![];
     for season in ESeason::get_seasons() {
