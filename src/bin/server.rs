@@ -284,7 +284,8 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
 
     let book_id = form.book.map(|x| x.parse::<i32>()).and_then(|x| x.ok()).filter(|x| *x >= 0);
     let page = form.page.map(|x| x.parse::<i32>()).and_then(|x| x.ok());
-    let recipe_struct = InsertRecipeWithUrl { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page, recipe_url: form.recipe_url };
+    let recipe_url = form.recipe_url.map(|x| x.trim().to_string()).filter(|x| !x.is_empty());
+    let recipe_struct = InsertRecipeWithUrl { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page, recipe_url: recipe_url };
     con.transaction::<_, Error, _>(|x| {
         use recipemanagement::schema::recipe;
         diesel::insert_into(recipemanagement::schema::recipe::table)
