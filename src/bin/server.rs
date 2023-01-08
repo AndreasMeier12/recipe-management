@@ -327,7 +327,7 @@ async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> 
         return Ok(());
     }
     ).unwrap();
-    let url = format!("/recipe/add?season={}&course={}&book={}", form.season, form.course, book_id.unwrap_or(0));
+    let url = format!("/recipe/add?season={}&course={}&book={}", form.season, form.course, book_id.unwrap_or(-1));
 
 
     return Redirect::to(url.as_str()).into_response();
