@@ -99,11 +99,14 @@ async fn index_handler(session: ReadableSession) -> Html<String> {
     use recipemanagement::schema::course::dsl::*;
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
+    let build_version = env!("VERGEN_GIT_SHA");
+
     let hello = HelloTemplate {
         name: "world",
         courses: course_refs.clone(),
         title: "Recipes",
         user_id: maybe_user_id,
+        build_version,
     }; // instantiate your struct
     let a = hello.get();
 
@@ -209,6 +212,7 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
 
         recipes_by_season_and_source.push((season, vals));
     }
+    let build_version = env!("VERGEN_GIT_SHA");
 
     let content = CourseTemplate {
         course_name: asdf.course_name.as_ref().unwrap().as_str(),
@@ -221,6 +225,7 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
         recipes_to_ingredients: recipes_to_ingredients,
         user_id: maybe_user_id,
         recipes_by_season_and_source,
+        build_version,
     }.get();
 
     return Html(content);
@@ -244,6 +249,7 @@ async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) ->
     use recipemanagement::schema::recipe::dsl::*;
     let newest_recipe: Option<FullRecipe> = recipe.order(recipemanagement::schema::recipe::recipe_id.desc()).first::<FullRecipe>(con)
         .ok();
+    let build_version = env!("VERGEN_GIT_SHA");
 
 
     return Html(RecipeForm {
@@ -254,6 +260,7 @@ async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) ->
         title: "Add Recipe",
         newest: newest_recipe,
         user_id: maybe_user_id,
+        build_version
     }
         .get()
     )
@@ -348,12 +355,14 @@ async fn book_form(session: ReadableSession) -> Response {
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
+    let build_version = env!("VERGEN_GIT_SHA");
 
 
     return Html(BookForm {
         courses: course_refs,
         title: "Add book",
         user_id: maybe_user_id,
+        build_version,
     }.get()).into_response();
 }
 
@@ -402,6 +411,7 @@ async fn search_form(session: ReadableSession) -> Response {
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
+    let build_version = env!("VERGEN_GIT_SHA");
 
     return Html(SearchForm {
         seasons: ESeason::get_seasons(),
@@ -411,6 +421,7 @@ async fn search_form(session: ReadableSession) -> Response {
         title: "Search",
         recipes_to_ingredients: Default::default(),
         user_id: maybe_user_id,
+        build_version: "build_version",
     }.get()).into_response();
 }
 
@@ -458,6 +469,7 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
         .map(|x| (x.clone().0, x.clone().1.unwrap().clone()))
         .into_group_map();
 
+    let build_version = env!("VERGEN_GIT_SHA");
 
     return Html(SearchForm {
         seasons: ESeason::get_seasons(),
@@ -467,6 +479,7 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
         title: "Search",
         recipes_to_ingredients,
         user_id: maybe_user_id,
+        build_version,
     }
         .get()).into_response();
 }
@@ -475,11 +488,14 @@ async fn login_page(session: ReadableSession) -> Html<String> {
     let con = &mut database::establish_connection();
     let maybe_user_id = session.get::<i32>("user_id");
 
+    let build_version = env!("VERGEN_GIT_SHA");
+
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     return Html(LoginPage {
         courses: &courses,
         title: "Login",
         user_id: maybe_user_id,
+        build_version,
     }.get());
 }
 
@@ -551,6 +567,7 @@ WHERE recipe_id={}", path);
     let recipe_text_disp = recipe_text.filter(recipemanagement::schema::recipe_text::recipe_id.eq(path))
         .load::<RecipeText>(con)
         .unwrap().first().map(|x| x.content.clone()).unwrap_or("".to_string());
+    let build_version = env!("VERGEN_GIT_SHA");
 
 
     return Html(RecipeEditForm {
@@ -563,6 +580,7 @@ WHERE recipe_id={}", path);
         prefill_season: prefill_season,
         recipe_text: recipe_text_disp,
         user_id: maybe_user_id,
+        build_version,
     }.get())
         .into_response();
 }
@@ -846,6 +864,8 @@ async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Respo
     }
     let con = &mut database::establish_connection();
     let res = con.transaction(|x| query_for_recipe_detail(x, path, maybe_user_id.unwrap()));
+    let build_version = env!("VERGEN_GIT_SHA");
+
     return Html(res.ok()
         .unwrap()
         .map(|x| RecipeDetail {
@@ -860,6 +880,7 @@ async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Respo
             comments: x.comments,
             recipe_text: x.recipe_text,
             user_id: maybe_user_id,
+            build_version,
         }.get())
         .unwrap_or("404".to_string())
     ).into_response();
