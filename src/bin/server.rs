@@ -38,7 +38,7 @@ use regex::Regex;
 use serde::Deserialize;
 
 use recipemanagement::*;
-use recipemanagement::args::{RecipePrefill, SearchPrefill, SearchRecipe};
+use recipemanagement::args::{RecipePrefill, SearchPrefill};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::queries::build_search_query;
@@ -422,10 +422,11 @@ async fn search_form(session: ReadableSession) -> Response {
         recipes_to_ingredients: Default::default(),
         user_id: maybe_user_id,
         build_version: "build_version",
+        prefill: SearchPrefill::default(),
     }.get()).into_response();
 }
 
-async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>) -> Response {
+async fn search_result(session: ReadableSession, Form(form): Form<SearchPrefill>) -> Response {
     let maybe_user_id = session.get::<i32>("user_id");
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -448,7 +449,7 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
 
     let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
 
-    let query_string = build_search_query(form, maybe_user_id.unwrap());
+    let query_string = build_search_query(&form, maybe_user_id.unwrap());
     let recipes = sql_query(query_string)
         .load::<FullRecipe>(con)
         .ok().unwrap_or(vec![]);
@@ -480,6 +481,7 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchRecipe>)
         recipes_to_ingredients,
         user_id: maybe_user_id,
         build_version,
+        prefill: form,
     }
         .get()).into_response();
 }

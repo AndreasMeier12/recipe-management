@@ -8,17 +8,17 @@ pub struct RecipePrefill {
 }
 
 #[derive(Deserialize)]
+#[derive(Default)]
 pub struct SearchPrefill {
+    pub name: Option<String>,
+    pub season: Option<i32>,
     pub course: Option<i32>,
     pub book: Option<i32>,
-    pub season: Option<usize>,
+    pub tried: i32,
 }
 
-#[derive(Deserialize)]
-pub struct SearchRecipe {
-    pub course: Option<i32>,
-    pub book: Option<i32>,
-    pub season: Option<i32>,
-    pub name: Option<String>,
-    pub tried: i32,
+impl SearchPrefill {
+    pub fn template_name(&self)  -> String {
+        self.name.as_ref().unwrap_or(&"".to_string()).clone()
+    }
 }
