@@ -84,6 +84,7 @@ async fn main() {
 
     // Address that server will bind to.
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    info!("serving HTTP traffic on {}", addr);
 
     // Use `hyper::server::Server` which is re-exported through `axum::Server` to serve the app.
     axum::Server::bind(&addr)
