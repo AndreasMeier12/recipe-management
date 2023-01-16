@@ -11,13 +11,13 @@
 {% block content %}
 <form id="form" method="post" target="/search">
     <label for="name">Search</label>
-    <input id="name" name="name" type="text"><br>
+    <input id="name" name="name" type="text" value="{{ prefill.template_name() }}"><br>
 
     <label for="season">Season</label>
     <select id="season" name="season" required>
         <option value="-1"></option>
         {% for season in seasons %}
-        <option value="{{season.value_rofl()}}">{{season.to_string()}}
+        <option value="{{season.value_rofl()}}" {% if prefill.season.unwrap_or(-1) == season.value_i32()  %}selected{% endif %}>{{season.to_string()}}
         </option>
         {% endfor %}
 
@@ -27,7 +27,7 @@
     <select id="course" name="course">
         <option value="-1">-</option>
         {% for course in courses %}
-        <option value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
+        <option value="{{course.course_id.unwrap()}}" {% if course.course_id.unwrap() == prefill.course.unwrap_or(-1) %}selected{% endif %}>{{course.course_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
     </select> <br>
@@ -35,15 +35,15 @@
     <select id="book" name="book">
         <option value="-1">-</option>
         {% for book in books%}
-        <option value="{{book.book_id.unwrap()}}">{{book.book_name.as_ref().unwrap()}}
+        <option value="{{book.book_id.unwrap()}}" {% if book.book_id.unwrap() == prefill.book.unwrap_or(-1) %}selected{% endif %}>{{book.book_name.as_ref().unwrap()}}
         </option>
         {% endfor %}
     </select> <br>
     <label for="tried">Tried</label>
     <select id="tried" name="tried" required>
-        <option value="0">-</option>
-        <option value="1">Yes</option>
-        <option value="2">No</option>
+        <option value="0" {% if prefill.tried == 0 %}selected{% endif %}>-</option>
+        <option value="1" {% if prefill.tried == 1 %}selected{% endif %}>Yes</option>
+        <option value="2" {% if prefill.tried == 2 %}selected{% endif %}>No</option>
 
         </option>
 

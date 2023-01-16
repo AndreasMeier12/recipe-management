@@ -42,6 +42,10 @@ impl ESeason {
         return ESeason::value(*self);
     }
 
+    pub fn value_i32(&self) -> i32 {
+        ESeason::value(*self) as i32
+    }
+
     pub fn get_seasons() -> Vec<ESeason> {
         return vec![ESeason::Summer, ESeason::Autumn, ESeason::Winter, ESeason::Spring, ESeason::Independent];
     }

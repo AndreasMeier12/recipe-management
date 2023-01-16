@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use askama::Template;
 
-use crate::args::RecipePrefill;
+use crate::args::{RecipePrefill, SearchPrefill};
 use crate::models::*;
 use crate::parsetypes::ESeason;
 
@@ -107,7 +107,7 @@ pub struct SearchForm<'a> {
     pub recipes_to_ingredients: HashMap<i32, Vec<String>>,
     pub user_id: Option<i32>,
     pub build_version: &'a str,
-
+    pub prefill: SearchPrefill,
     // in your template
 }
 
