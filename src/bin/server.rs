@@ -81,6 +81,12 @@ async fn main() {
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
 
+    {
+        // Try to establish a database connection early. The user will get feedback
+        // on trivial issues like an empty DATABASE_URL immediately. The connection
+        // is established in a new scope so it will be dropped immediately.
+        database::establish_connection();
+    }
 
     // Address that server will bind to.
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
