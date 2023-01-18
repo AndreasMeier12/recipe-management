@@ -20,7 +20,7 @@ use axum::{body::Body, response::{Html, Json}};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
-use axum_sessions::{async_session::MemoryStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
+use axum_sessions::{async_session::CookieStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
 use axum_sessions::async_session::blake3::Hash;
 use axum_sessions::async_session::blake3::IncrementCounter::No;
 use axum_sessions::async_session::log::trace;
@@ -33,7 +33,6 @@ use diesel::sql_types::{BoolOrNullableBool, Integer, Text};
 use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
-use rand::Rng;
 use regex::Regex;
 use serde::Deserialize;
 
@@ -46,6 +45,7 @@ use recipemanagement::schema::course::dsl::course;
 use recipemanagement::schema::ingredient::dsl::ingredient;
 use recipemanagement::schema::recipe::primary_season;
 use recipemanagement::schema::recipe_ingredient::recipe_id;
+use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
 
@@ -57,8 +57,8 @@ async fn main() {
     // `axum::response::IntoResponse`.
 
     // A closure or a function can be used as handler.
-    let store = MemoryStore::new();
-    let secret = rand::thread_rng().gen::<[u8; 128]>();
+    let store = CookieStore::new();
+    let secret = get_secret();
     let session_layer = SessionLayer::new(store, &secret);
 
     let env = Env::default()
