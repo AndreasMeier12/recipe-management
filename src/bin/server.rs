@@ -49,6 +49,9 @@ use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
 
+const SESSION_VERSION: usize = 1;
+const SESSION_VERSION_KEY: &str = "session_version";
+
 #[tokio::main]
 async fn main() {
     // Route all requests on "/" endpoint to anonymous handler.
@@ -100,9 +103,9 @@ async fn main() {
         .unwrap();
 }
 
-async fn index_handler(session: ReadableSession) -> Html<String> {
+async fn index_handler(mut session: WritableSession) -> Html<String> {
     let con = &mut database::establish_connection();
-    let maybe_user_id: Option<i32> = session.get::<i32>("user_id");
+    let maybe_user_id: Option<i32> = get_user_id(session);
     use recipemanagement::schema::course::dsl::*;
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
@@ -120,7 +123,7 @@ async fn index_handler(session: ReadableSession) -> Html<String> {
     return Html(a);
 }
 
-async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Html<String> {
+async fn handle_course(mut session: WritableSession, Path(path): Path<String>) -> Html<String> {
     let cur_name = path.as_str();
     let con = &mut database::establish_connection();
     use recipemanagement::schema::course::dsl::*;
@@ -148,7 +151,7 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
     let course_refs: &Vec<QCourse> = &courses;
 
     let mut tried_ids: HashSet<i32> = HashSet::new();
-    let maybe_user_id: Option<i32> = session.get::<i32>("user_id");
+    let maybe_user_id: Option<i32> = get_user_id(session);
     if maybe_user_id.is_some() {
         use recipemanagement::schema::tried::dsl::*;
         let temp = tried.filter(user_id.eq(maybe_user_id.unwrap()))
@@ -239,8 +242,8 @@ async fn handle_course(session: ReadableSession, Path(path): Path<String>) -> Ht
 }
 
 
-async fn recipe_form(session: ReadableSession, prefill: Query<RecipePrefill>) -> Response {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn recipe_form(mut session: WritableSession, prefill: Query<RecipePrefill>) -> Response {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
@@ -288,8 +291,8 @@ struct PostRecipe {
 
 }
 
-async fn post_recipe(session: ReadableSession, Form(form): Form<PostRecipe>) -> Response {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn post_recipe(mut session: WritableSession, Form(form): Form<PostRecipe>) -> Response {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
@@ -353,8 +356,8 @@ struct PostBook {
     booktext: String,
 }
 
-async fn book_form(session: ReadableSession) -> Response {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn book_form(mut session: WritableSession) -> Response {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
@@ -373,8 +376,8 @@ async fn book_form(session: ReadableSession) -> Response {
     }.get()).into_response();
 }
 
-async fn post_book(session: ReadableSession, Form(form): Form<PostBook>) -> Redirect {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn post_book(mut session: WritableSession, Form(form): Form<PostBook>) -> Redirect {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login");
     }
@@ -401,9 +404,8 @@ async fn post_book(session: ReadableSession, Form(form): Form<PostBook>) -> Redi
 }
 
 
-
-async fn search_form(session: ReadableSession) -> Response {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn search_form(mut session: WritableSession) -> Response {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
@@ -433,8 +435,8 @@ async fn search_form(session: ReadableSession) -> Response {
     }.get()).into_response();
 }
 
-async fn search_result(session: ReadableSession, Form(form): Form<SearchPrefill>) -> Response {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn search_result(mut session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
@@ -493,9 +495,9 @@ async fn search_result(session: ReadableSession, Form(form): Form<SearchPrefill>
         .get()).into_response();
 }
 
-async fn login_page(session: ReadableSession) -> Html<String> {
+async fn login_page(mut session: WritableSession) -> Html<String> {
     let con = &mut database::establish_connection();
-    let maybe_user_id = session.get::<i32>("user_id");
+    let maybe_user_id = get_user_id(session);
 
     let build_version = env!("VERGEN_GIT_SHA");
 
@@ -533,14 +535,15 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
 
     if verif.is_ok() {
         session.insert("user_id", maybe_user.as_ref().unwrap().id.unwrap());
+        session.insert(SESSION_VERSION_KEY, SESSION_VERSION);
     }
 
 
     return Redirect::to("/");
 }
 
-async fn edit_recipe_form(session: ReadableSession, Path(path): Path<i32>) -> Response {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn edit_recipe_form(mut session: WritableSession, Path(path): Path<i32>) -> Response {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
@@ -607,8 +610,8 @@ struct PutRecipe {
     recipe_text: Option<String>
 }
 
-async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn put_recipe(mut session: WritableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login");
     }
@@ -738,8 +741,8 @@ async fn put_recipe(session: ReadableSession, Path(path): Path<i32>, Form(form):
     return Redirect::to(format!("/recipe/detail/{}", path).as_str())
 }
 
-async fn toggle_tried(session: ReadableSession, Path(path): Path<i32>) -> StatusCode {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn toggle_tried(mut session: WritableSession, Path(path): Path<i32>) -> StatusCode {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return StatusCode::UNAUTHORIZED;
     }
@@ -867,8 +870,8 @@ struct RecipeDetailQuery {
 }
 
 
-async fn recipe_detail(session: ReadableSession, Path(path): Path<i32>) -> Response {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn recipe_detail(mut session: WritableSession, Path(path): Path<i32>) -> Response {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
@@ -901,8 +904,8 @@ struct PostComment {
     comment: String,
 }
 
-async fn post_comment(session: ReadableSession, Path(path): Path<i32>, Form(form): Form<PostComment>) -> Response {
-    let maybe_user_id = session.get::<i32>("user_id");
+async fn post_comment(mut session: WritableSession, Path(path): Path<i32>, Form(form): Form<PostComment>) -> Response {
+    let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
@@ -928,6 +931,20 @@ async fn post_comment(session: ReadableSession, Path(path): Path<i32>, Form(form
     return Redirect::to(format!("/recipe/detail/{}", path).as_str()).into_response();
 }
 
+
+fn get_user_id(mut session: WritableSession) -> Option<i32> {
+    let maybe_user_id = session.get::<i32>("user_id");
+    if maybe_user_id.is_none() {
+        return None;
+    }
+    let same_version = session.get::<usize>(SESSION_VERSION_KEY).filter(|x| *x == SESSION_VERSION);
+    if same_version.is_none() {
+        info!("Outdated session, destroying session");
+        session.destroy();
+        return None;
+    }
+    return maybe_user_id;
+}
 
 fn query_course() {}
 
