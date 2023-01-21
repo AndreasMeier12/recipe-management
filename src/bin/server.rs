@@ -518,8 +518,9 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
 
     let con = &mut database::establish_connection();
 
-    let sql_string = format!("SELECT * FROM user WHERE email='{}'", form.email);
+    let sql_string = format!("SELECT * FROM user WHERE email=?");
     let temp_user = sql_query(sql_string)
+        .bind::<Text, _>(form.email)
         .load::<User>(con)
         .unwrap();
     let maybe_user = temp_user.first();
