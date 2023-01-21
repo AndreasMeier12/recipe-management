@@ -31,6 +31,9 @@ diesel_logger = "0.2.0"
 version = "0.8.5"
 features = ["min_const_gen"]
 
+[profile.dev.package.argon2]
+opt-level=3
+
 
 [[bin]]
 name = "import"
