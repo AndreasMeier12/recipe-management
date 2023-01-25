@@ -1,5 +1,6 @@
+use anyhow::Result;
 use vergen::{Config, vergen};
 
-fn main() {
-    vergen(Config::default());
+fn main() -> Result<()> {
+    vergen(Config::default())
 }
