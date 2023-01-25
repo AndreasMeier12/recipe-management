@@ -1,6 +1,6 @@
 use diesel::prelude::*;
-use diesel::sql_types::{Double, Float, Timestamp};
-use itertools::Format;
+
+
 
 use super::schema::book;
 use super::schema::course;

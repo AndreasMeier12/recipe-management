@@ -1,39 +1,38 @@
 #[macro_use]
 extern crate log;
 
-use std::borrow::Borrow;
+
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::RandomState;
-use std::fmt::format;
+
 use std::net::SocketAddr;
-use std::ops::Deref;
+
 
 use argon2::{
     Argon2,
     password_hash::{
-        PasswordHash,
-        PasswordHasher, PasswordVerifier, rand_core::OsRng, SaltString,
+        PasswordHash, PasswordVerifier,
     },
 };
-use axum::{Extension, Form, Router, routing::{get, post}};
-use axum::{body::Body, response::{Html, Json}};
+use axum::{Form, Router, routing::{get, post}};
+use axum::{response::{Html}};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
-use axum_sessions::{async_session::CookieStore, extractors::{ReadableSession, WritableSession}, Session, SessionLayer};
-use axum_sessions::async_session::blake3::Hash;
-use axum_sessions::async_session::blake3::IncrementCounter::No;
+use axum_sessions::{async_session::CookieStore, extractors::{WritableSession}, SessionLayer};
+
+
 use axum_sessions::async_session::log::trace;
 use diesel::{select, sql_query};
-use diesel::dsl::{exists, max, sql};
-use diesel::internal::operators_macro::FieldAliasMapper;
+use diesel::dsl::{exists, max};
 use diesel::prelude::*;
 use diesel::result::Error;
-use diesel::sql_types::{BoolOrNullableBool, Integer, Text};
+use diesel::sql_types::{Integer, Text};
 use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
-use regex::Regex;
+
+
 use serde::Deserialize;
 
 use recipemanagement::*;
@@ -42,10 +41,11 @@ use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::queries::build_search_query;
 use recipemanagement::schema::course::dsl::course;
-use recipemanagement::schema::ingredient::dsl::ingredient;
-use recipemanagement::schema::recipe::primary_season;
-use recipemanagement::schema::recipe_ingredient::recipe_id;
+
+
+
 use recipemanagement::secret::get_secret;
+
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
 
@@ -103,7 +103,7 @@ async fn main() {
         .unwrap();
 }
 
-async fn index_handler(mut session: WritableSession) -> Html<String> {
+async fn index_handler(session: WritableSession) -> Html<String> {
     let con = &mut database::establish_connection();
     let maybe_user_id: Option<i32> = get_user_id(session);
     use recipemanagement::schema::course::dsl::*;
@@ -123,7 +123,7 @@ async fn index_handler(mut session: WritableSession) -> Html<String> {
     return Html(a);
 }
 
-async fn handle_course(mut session: WritableSession, Path(path): Path<String>) -> Html<String> {
+async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Html<String> {
     let cur_name = path.as_str();
     let con = &mut database::establish_connection();
     use recipemanagement::schema::course::dsl::*;
@@ -138,11 +138,11 @@ async fn handle_course(mut session: WritableSession, Path(path): Path<String>) -
 
     let asdf: &QCourse = reses.first().unwrap();
     use recipemanagement::schema::recipe::dsl::*;
-    let a: Option<i32> = None;
+    let _a: Option<i32> = None;
 
 
 
-    use recipemanagement::schema::recipe::dsl::*;
+    
     let recipes: Vec<FullRecipe> = recipe.filter(recipemanagement::schema::recipe::course_id.eq(res)).load::<FullRecipe>(con).unwrap();
     use recipemanagement::schema::book::dsl::*;
 
@@ -242,7 +242,7 @@ async fn handle_course(mut session: WritableSession, Path(path): Path<String>) -
 }
 
 
-async fn recipe_form(mut session: WritableSession, prefill: Query<RecipePrefill>) -> Response {
+async fn recipe_form(session: WritableSession, prefill: Query<RecipePrefill>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -290,7 +290,7 @@ struct PostRecipe {
 
 }
 
-async fn post_recipe(mut session: WritableSession, Form(form): Form<PostRecipe>) -> Response {
+async fn post_recipe(session: WritableSession, Form(form): Form<PostRecipe>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -303,7 +303,7 @@ async fn post_recipe(mut session: WritableSession, Form(form): Form<PostRecipe>)
     let recipe_url = form.recipe_url.map(|x| x.trim().to_string()).filter(|x| !x.is_empty());
     let recipe_struct = InsertRecipeWithUrl { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page, recipe_url: recipe_url };
     con.transaction::<_, Error, _>(|x| {
-        use recipemanagement::schema::recipe;
+        
         diesel::insert_into(recipemanagement::schema::recipe::table)
             .values(vec![recipe_struct])
             .execute(x)
@@ -334,11 +334,13 @@ async fn post_recipe(mut session: WritableSession, Form(form): Form<PostRecipe>)
         for val in ingredients_insert_vals.iter().filter(|x| !(x.trim().is_empty())) {
             diesel::sql_query("INSERT OR IGNORE into  ingredient(name) values (?);")
                 .bind::<Text, _>(val.clone().to_lowercase())
-                .execute(x);
-            let res = diesel::sql_query("INSERT OR IGNORE INTO recipe_ingredient(recipe_id, ingredient_id)  SELECT ?, id FROM ingredient where lower(name)=?;")
+                .execute(x)
+                .unwrap();
+            let _res = diesel::sql_query("INSERT OR IGNORE INTO recipe_ingredient(recipe_id, ingredient_id)  SELECT ?, id FROM ingredient where lower(name)=?;")
                 .bind::<Integer, _>(cur_recipe_id)
                 .bind::<Text, _>(val.clone().to_lowercase())
-                .execute(x);
+                .execute(x)
+                .unwrap();
         }
         return Ok(());
     }
@@ -355,7 +357,7 @@ struct PostBook {
     booktext: String,
 }
 
-async fn book_form(mut session: WritableSession) -> Response {
+async fn book_form(session: WritableSession) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -375,7 +377,7 @@ async fn book_form(mut session: WritableSession) -> Response {
     }.get()).into_response();
 }
 
-async fn post_book(mut session: WritableSession, Form(form): Form<PostBook>) -> Redirect {
+async fn post_book(session: WritableSession, Form(form): Form<PostBook>) -> Redirect {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login");
@@ -403,7 +405,7 @@ async fn post_book(mut session: WritableSession, Form(form): Form<PostBook>) -> 
 }
 
 
-async fn search_form(mut session: WritableSession) -> Response {
+async fn search_form(session: WritableSession) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -419,7 +421,7 @@ async fn search_form(mut session: WritableSession) -> Response {
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
-    let build_version = env!("VERGEN_GIT_SHA");
+    let _build_version = env!("VERGEN_GIT_SHA");
 
     return Html(SearchForm {
         seasons: ESeason::get_seasons(),
@@ -434,7 +436,7 @@ async fn search_form(mut session: WritableSession) -> Response {
     }.get()).into_response();
 }
 
-async fn search_result(mut session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
+async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -446,14 +448,14 @@ async fn search_result(mut session: WritableSession, Form(form): Form<SearchPref
 
     use recipemanagement::schema::book::dsl::*;
 
-    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    let _books: Vec<QBook> = book.load::<QBook>(con).unwrap();
     use recipemanagement::schema::course::dsl::*;
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    use recipemanagement::schema::book::dsl::*;
+    
 
     let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
 
@@ -494,7 +496,7 @@ async fn search_result(mut session: WritableSession, Form(form): Form<SearchPref
         .get()).into_response();
 }
 
-async fn login_page(mut session: WritableSession) -> Html<String> {
+async fn login_page(session: WritableSession) -> Html<String> {
     let con = &mut database::establish_connection();
     let maybe_user_id = get_user_id(session);
 
@@ -533,15 +535,15 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
     let verif = Argon2::default().verify_password(form.password.as_bytes(), &parsed_hash);
 
     if verif.is_ok() {
-        session.insert("user_id", maybe_user.as_ref().unwrap().id.unwrap());
-        session.insert(SESSION_VERSION_KEY, SESSION_VERSION);
+        session.insert("user_id", maybe_user.as_ref().unwrap().id.unwrap()).unwrap();
+        session.insert(SESSION_VERSION_KEY, SESSION_VERSION).unwrap();
     }
 
 
     return Redirect::to("/");
 }
 
-async fn edit_recipe_form(mut session: WritableSession, Path(path): Path<i32>) -> Response {
+async fn edit_recipe_form(session: WritableSession, Path(path): Path<i32>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -609,7 +611,7 @@ struct PutRecipe {
     recipe_text: Option<String>
 }
 
-async fn put_recipe(mut session: WritableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
+async fn put_recipe(session: WritableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login");
@@ -620,7 +622,7 @@ async fn put_recipe(mut session: WritableSession, Path(path): Path<i32>, Form(fo
     let page_res = form.page.map(|x| x.parse::<i32>()).and_then(|x| x.ok());
 
 
-    let transaction_res = con.transaction::<_, Error, _>(|x| {
+    let _transaction_res = con.transaction::<_, Error, _>(|x| {
         use recipemanagement::schema::recipe::dsl::*;
 
         let old_recipe_query = recipe.filter(recipe_id.eq(path))
@@ -643,7 +645,8 @@ async fn put_recipe(mut session: WritableSession, Path(path): Path<i32>, Form(fo
 
         diesel::replace_into(recipe)
             .values(&vec![edit_recipe])
-            .execute(x);
+            .execute(x)
+            .unwrap();
         if form.ingredients.is_some() {
             use recipemanagement::schema::ingredient::dsl::*;
             let ingredient_names: Vec<String> = form.ingredients.unwrap().trim()
@@ -681,7 +684,7 @@ async fn put_recipe(mut session: WritableSession, Path(path): Path<i32>, Form(fo
                 .load::<RecipeIngredient>(x)
                 .unwrap();
 
-            let assigned_names: HashSet<String, RandomState> = HashSet::from_iter((assigned_ingredients.iter().map(|x| id_to_ingredient.get(&x.ingredient_id).unwrap().to_string())));
+            let assigned_names: HashSet<String, RandomState> = HashSet::from_iter(assigned_ingredients.iter().map(|x| id_to_ingredient.get(&x.ingredient_id).unwrap().to_string()));
 
             let to_connect = update_names.intersection(&existing_names)
                 .into_iter()
@@ -720,7 +723,7 @@ async fn put_recipe(mut session: WritableSession, Path(path): Path<i32>, Form(fo
                 .collect();
             let new_refs: Vec<InsertRecipeIngredient> = to_insert.iter()
                 .enumerate()
-                .map(|(i, x)| InsertRecipeIngredient { recipe_id: path, ingredient_id: i as i32 + start_id })
+                .map(|(i, _x)| InsertRecipeIngredient { recipe_id: path, ingredient_id: i as i32 + start_id })
                 .collect();
 
             diesel::insert_into(ingredient)
@@ -740,13 +743,13 @@ async fn put_recipe(mut session: WritableSession, Path(path): Path<i32>, Form(fo
     return Redirect::to(format!("/recipe/detail/{}", path).as_str())
 }
 
-async fn toggle_tried(mut session: WritableSession, Path(path): Path<i32>) -> StatusCode {
+async fn toggle_tried(session: WritableSession, Path(path): Path<i32>) -> StatusCode {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return StatusCode::UNAUTHORIZED;
     }
     let connection = &mut database::establish_connection();
-    let transaction_res = connection.transaction::<_, Error, _>(|con| {
+    let _transaction_res = connection.transaction::<_, Error, _>(|con| {
         use recipemanagement::schema::tried::dsl::*;
         let already_exists = select(
             exists(
@@ -770,10 +773,6 @@ async fn toggle_tried(mut session: WritableSession, Path(path): Path<i32>) -> St
 
 
     return StatusCode::OK;
-}
-
-fn test(id_to_ingredient: HashMap<i32, String>) {
-    id_to_ingredient.get(&15).unwrap();
 }
 
 pub struct RecipeEditQuery {}
@@ -869,7 +868,7 @@ struct RecipeDetailQuery {
 }
 
 
-async fn recipe_detail(mut session: WritableSession, Path(path): Path<i32>) -> Response {
+async fn recipe_detail(session: WritableSession, Path(path): Path<i32>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -903,7 +902,7 @@ struct PostComment {
     comment: String,
 }
 
-async fn post_comment(mut session: WritableSession, Path(path): Path<i32>, Form(form): Form<PostComment>) -> Response {
+async fn post_comment(session: WritableSession, Path(path): Path<i32>, Form(form): Form<PostComment>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -913,7 +912,7 @@ async fn post_comment(mut session: WritableSession, Path(path): Path<i32>, Form(
 
     if !form.comment.trim().is_empty() {
         let cur_user_id = maybe_user_id.unwrap();
-        use recipemanagement::schema::recipe_comment::dsl::*;
+        
         let insert_comment = InsertComment {
             user_id: cur_user_id,
             recipe_id: path,
@@ -930,7 +929,6 @@ async fn post_comment(mut session: WritableSession, Path(path): Path<i32>, Form(
     return Redirect::to(format!("/recipe/detail/{}", path).as_str()).into_response();
 }
 
-
 fn get_user_id(mut session: WritableSession) -> Option<i32> {
     let maybe_user_id = session.get::<i32>("user_id");
     if maybe_user_id.is_none() {
@@ -944,8 +942,3 @@ fn get_user_id(mut session: WritableSession) -> Option<i32> {
     }
     return maybe_user_id;
 }
-
-fn query_course() {}
-
-
-

@@ -1,13 +1,13 @@
 use std::{fs, vec};
 use std::collections::{HashMap, HashSet};
-use std::env;
+
 use std::ffi::OsStr;
-use std::fs::read_to_string;
+
 use std::path::Path;
 
 use diesel::prelude::*;
 use diesel::result::Error;
-use dotenvy::dotenv;
+
 use itertools::Itertools;
 use regex::Regex;
 
@@ -16,7 +16,7 @@ use recipemanagement::database::establish_connection;
 use recipemanagement::parsetypes::{ESeason, FileWithCourse, ParseRecipe};
 use recipemanagement::parsetypes::ESeason::Independent;
 
-use crate::models::{FullRecipe, InsertBook, InsertCourse, InsertIngredient, InsertRecipe, InsertRecipeIngredient, InsertSeason, QBook, QCourse};
+use crate::models::{InsertBook, InsertCourse, InsertIngredient, InsertRecipeIngredient, InsertSeason};
 
 fn main() {
     let in_path_file = Path::new("path.txt");
@@ -65,7 +65,7 @@ fn main() {
 
     use recipemanagement::schema::recipe;
     let recipe_ingredients: Vec<&InsertRecipeIngredient> = ingredient_infos.1.iter().unique().map(|x| x.clone()).collect();
-    let transaction_res = con.transaction::<_, Error, _>(|x| {
+    let _transaction_res = con.transaction::<_, Error, _>(|x| {
         diesel::insert_into(recipe::table)
             .values(&recipes)
             .execute(x)
@@ -119,11 +119,6 @@ fn build_tag_records(a: Vec<ParseRecipe>, recipe_name_to_id: HashMap<&String, Op
     return (tags, recipe_tags);
 }
 
-fn build_recipe_tags(a: ParseRecipe, b: HashMap<String, i32>){
-
-
-}
-
 fn build_seasons_records() -> Vec<InsertSeason> {
     return vec![build_season_record(ESeason::Summer),
                 build_season_record(ESeason::Autumn),
@@ -137,8 +132,8 @@ fn build_season_record(a: ESeason) -> InsertSeason {
     return InsertSeason::new(Some(ESeason::value(a) as i32), ESeason::to_string(&a).to_string());
 }
 
-fn read_in(configPath: &Path) -> Vec<FileWithCourse> {
-    let in_paths: Vec<String> = fs::read_to_string(configPath)
+fn read_in(config_path: &Path) -> Vec<FileWithCourse> {
+    let in_paths: Vec<String> = fs::read_to_string(config_path)
         .expect("There really should be a path").split("\n").into_iter()
         .map(|x| x.to_string())
         .collect();
@@ -227,7 +222,7 @@ fn parse_page_number(b: String) -> Option<u16> {
     let c = b.split(' ').last().unwrap();
     let d = c.parse::<u16>();
     match d {
-        Ok(T) => return Some(T),
-        Err(T) => None
+        Ok(t) => return Some(t),
+        Err(_t) => None
     }
 }
