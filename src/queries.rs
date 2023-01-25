@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::args::{SearchPrefill};
-use crate::schema::ingredient::name;
+
 
 pub fn build_search_query(params: &SearchPrefill, user_id: i32) -> String {
     let mut simple_criteria: Vec<String> = vec![];

@@ -2,7 +2,7 @@ use std::env;
 
 use dotenvy::dotenv;
 use hex::FromHex;
-use itertools::Itertools;
+
 use log::info;
 use rand::Rng;
 

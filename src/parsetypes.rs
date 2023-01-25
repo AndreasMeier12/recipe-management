@@ -67,8 +67,6 @@ impl ESeason {
     pub fn from_string(a: &str) -> Option<ESeason>{
         match a.to_lowercase().as_str() {
             "summer" => Some(ESeason::Summer),
-                        "summer" => Some(ESeason::Summer),
-            "summer" => Some(ESeason::Summer),
             "spring" => Some(ESeason::Spring),
             "independent" => Some(ESeason::Independent),
             _ => None
