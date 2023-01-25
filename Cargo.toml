@@ -9,6 +9,8 @@ build = "build.rs"
 
 [build-dependencies]
 vergen = "6"
+anyhow = "1.0"
+
 
 [dependencies]
 regex = "1"
