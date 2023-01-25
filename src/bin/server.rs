@@ -283,7 +283,6 @@ struct PostRecipe {
     book: Option<String>,
     season: i32,
     name: String,
-    url: Option<String>,
     page: Option<String>,
     recipe_url: Option<String>,
     recipe_text: Option<String>,
