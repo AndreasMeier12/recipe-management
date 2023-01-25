@@ -50,8 +50,8 @@
     <label for="ingredients">Ingredients</label>
     <textarea name="ingredients">{{ingredients}}</textarea><br>
 
-    <label for="url">URL</label>
-    <input type="text" name="url" {% if recipe.recipe_url.as_ref().is_some() %}
+    <label for="recipe_url">URL</label>
+    <input type="text" name="recipe_url" {% if recipe.recipe_url.as_ref().is_some() %}
            value="{{recipe.recipe_url.as_ref().unwrap()}}" {%
            endif %}><br>
     <label for="recipe_text">The recipe itself</label>
