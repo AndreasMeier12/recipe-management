@@ -15,7 +15,7 @@ use super::schema::user;
 
 #[derive(Queryable, Associations, QueryableByName, Clone)]
 #[diesel(table_name = recipe)]
-#[belongs_to(parent = "QCourse", foreign_key = "course_id")]
+#[diesel(belongs_to(QCourse, foreign_key = course_id))]
 pub struct FullRecipe {
     pub recipe_id: Option<i32>,
     pub primary_season: i32,
