@@ -1,7 +1,6 @@
 use itertools::Itertools;
 
-use crate::args::{SearchPrefill};
-
+use crate::args::SearchPrefill;
 
 pub fn build_search_query(params: &SearchPrefill, user_id: i32) -> String {
     let mut simple_criteria: Vec<String> = vec![];
@@ -24,7 +23,10 @@ pub fn build_search_query(params: &SearchPrefill, user_id: i32) -> String {
     }
 
 
-    let name_for_real = params.name.as_ref().unwrap_or(&"".to_string()).trim().to_string();
+    let name_for_real = params.name.as_ref().unwrap_or(&"".to_string()).trim().to_string()
+        .replace("'", "''")
+        .replace("_", "[_]")
+        .replace("%", "[%]");
     if name_for_real.is_empty() {
         let args = simple_criteria.join("\nAND\n");
         return format!("SELECT * FROM RECIPE WHERE {}", args);
