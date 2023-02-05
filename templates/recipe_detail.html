@@ -92,7 +92,7 @@
     <h2>Comments</h2>
     {% for comment in comments %}
     <h3>{{comment.user_id}} at {{comment.created_at}} </h3>
-    {{comment.content}}
+    <pre>{{comment.content}}</pre>
     {% endfor %}
 </div>
 
