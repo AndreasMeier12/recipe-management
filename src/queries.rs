@@ -15,10 +15,10 @@ pub fn build_search_query(params: &SearchPrefill, user_id: i32) -> String {
         simple_criteria.push(format!("course_id={}", params.course.unwrap()))
     }
 
-    if params.tried == 1 {
+    if params.tried.filter(|x| *x == 1).is_some() {
         simple_criteria.push(format!("SELECT * FROM recipe WHERE EXISTS(SELECT * FROM tried WHERE user_id={} and recipe.recipe_id=tried.recipe_id)", user_id));
     }
-    if params.tried == 2 {
+    if params.tried.filter(|x| *x == 2).is_some() {
         simple_criteria.push(format!("SELECT * FROM recipe WHERE NOT EXISTS(SELECT * FROM tried WHERE user_id={} and recipe.recipe_id=tried.recipe_id)", user_id));
     }
 

@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate log;
-
+extern crate serde_qs as qs;
 
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::RandomState;
@@ -33,7 +33,7 @@ use env_logger::Env;
 use itertools::Itertools;
 
 
-use serde::Deserialize;
+use serde::{Deserialize};
 
 use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
@@ -405,35 +405,61 @@ async fn post_book(session: WritableSession, Form(form): Form<PostBook>) -> Redi
 }
 
 
-async fn search_form(session: WritableSession) -> Response {
+async fn search_form(session: WritableSession, args: Query<SearchPrefill>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
 
-    let con = &mut database::establish_connection();
+    let con: &mut LoggingConnection<SqliteConnection> = &mut database::establish_connection();
 
     use recipemanagement::schema::book::dsl::*;
 
-    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
     use recipemanagement::schema::course::dsl::*;
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
 
-    let _build_version = env!("VERGEN_GIT_SHA");
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+
+    let prefill = copy_search_prefill(&args);
+    let recipes = query_recipe_search(con, args, maybe_user_id.unwrap());
+
 
     return Html(SearchForm {
         seasons: ESeason::get_seasons(),
         books: &books,
         courses: course_refs,
-        recipes: None,
+        recipes: recipes,
         title: "Search",
         recipes_to_ingredients: Default::default(),
         user_id: maybe_user_id,
-        build_version: "build_version",
-        prefill: SearchPrefill::default(),
+        build_version: env!("VERGEN_GIT_SHA"),
+        prefill,
     }.get()).into_response();
+}
+
+fn copy_search_prefill(a: &SearchPrefill) -> SearchPrefill{
+    return  SearchPrefill{
+        name: a.name.as_ref().map(|x| x.clone().to_string()),
+        season: a.season.as_ref().map(|x| *x),
+        course: a.course.as_ref().map(|x| *x),
+        book: a.book.as_ref().map(|x| *x),
+        tried: a.tried.as_ref().map(|x| *x),
+    };
+
+}
+
+fn query_recipe_search(con: &mut LoggingConnection<SqliteConnection>, args: Query<SearchPrefill>, user_id: i32) -> Option<Vec<FullRecipe>>{
+    if args.empty() {
+        return None;
+    }
+    let query_string = build_search_query(&args, user_id);
+    return sql_query(query_string)
+        .load::<FullRecipe>(con)
+        .ok();
+
+
 }
 
 async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
@@ -441,59 +467,9 @@ async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
     }
-
-    let con = &mut database::establish_connection();
-
-
-
-    use recipemanagement::schema::book::dsl::*;
-
-    let _books: Vec<QBook> = book.load::<QBook>(con).unwrap();
-    use recipemanagement::schema::course::dsl::*;
-
-    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
-    let course_refs: &Vec<QCourse> = &courses;
-
-
-    
-
-    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
-
-    let query_string = build_search_query(&form, maybe_user_id.unwrap());
-    let recipes = sql_query(query_string)
-        .load::<FullRecipe>(con)
-        .ok().unwrap_or(vec![]);
-
-    use recipemanagement::schema::ingredient::dsl::*;
-    let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
-        .unwrap()
-        .iter()
-        .map(|x| (x.clone().id.unwrap(), x.name.clone().unwrap()))
-        .collect();
-
-    use recipemanagement::schema::recipe_ingredient::dsl::*;
-    let recipes_to_ingredients = recipe_ingredient.load::<RecipeIngredient>(con)
-        .unwrap()
-        .iter()
-        .map(|x| (x.recipe_id, id_to_ingredients.get(&x.ingredient_id)))
-        .filter(|x| x.clone().1.is_some())
-        .map(|x| (x.clone().0, x.clone().1.unwrap().clone()))
-        .into_group_map();
-
-    let build_version = env!("VERGEN_GIT_SHA");
-
-    return Html(SearchForm {
-        seasons: ESeason::get_seasons(),
-        books: &books,
-        courses: course_refs,
-        recipes: Some(recipes),
-        title: "Search",
-        recipes_to_ingredients,
-        user_id: maybe_user_id,
-        build_version,
-        prefill: form,
-    }
-        .get()).into_response();
+    let query_string = qs::to_string(&form).expect("Deserializing search params from form should work");
+    let url = format!("/search?{}", query_string);
+    return Redirect::to(&url).into_response();
 }
 
 async fn login_page(session: WritableSession) -> Html<String> {
