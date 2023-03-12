@@ -39,11 +39,13 @@
         </option>
         {% endfor %}
     </select> <br>
+    {% let tried_unwrapped = prefill.tried.unwrap_or(0) %}
+
     <label for="tried">Tried</label>
     <select id="tried" name="tried" required>
-        <option value="0" {% if prefill.tried == 0 %}selected{% endif %}>-</option>
-        <option value="1" {% if prefill.tried == 1 %}selected{% endif %}>Yes</option>
-        <option value="2" {% if prefill.tried == 2 %}selected{% endif %}>No</option>
+        <option value="0" {% if tried_unwrapped == 0 %}selected{% endif %}>-</option>
+        <option value="1" {% if tried_unwrapped == 1 %}selected{% endif %}>Yes</option>
+        <option value="2" {% if tried_unwrapped == 2 %}selected{% endif %}>No</option>
 
         </option>
 
