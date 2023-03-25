@@ -20,6 +20,8 @@ use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum_sessions::{async_session::CookieStore, extractors::{WritableSession}, SessionLayer};
+use axum_sessions::async_session::chrono;
+use axum_sessions::async_session::chrono::{DateTime, Months, Utc};
 
 
 use axum_sessions::async_session::log::trace;
@@ -515,7 +517,10 @@ async fn login_page(session: WritableSession) -> Html<String> {
 struct Login {
     email: String,
     password: String,
+    long: Option<String>,
 }
+
+const LONG_SESSION_DURATION: u32 = 240;
 
 async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redirect { //
 
@@ -537,6 +542,14 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
     if verif.is_ok() {
         session.insert("user_id", maybe_user.as_ref().unwrap().id.unwrap()).unwrap();
         session.insert(SESSION_VERSION_KEY, SESSION_VERSION).unwrap();
+
+        if form.long.filter(|x| x == "on").is_some() {
+            let date_time: DateTime<Utc> = chrono::offset::Local::now()
+                .checked_add_months(Months::new(LONG_SESSION_DURATION))
+                .expect("Date for session lifetime is wrong, this should not be possible")
+                .into();
+            session.set_expiry(date_time);
+        }
     }
 
 
