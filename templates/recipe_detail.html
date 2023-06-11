@@ -61,15 +61,15 @@
     </tr>
 
     <div>
-        <a class="btn" href="/recipe/edit/{{recipe.recipe_id.unwrap()}}">Edit</a>
+        <a class="btn btn-primary" href="/recipe/edit/{{recipe.recipe_id.unwrap()}}">Edit</a>
     </div>
 
 </table>
 <div id="div-ingredients">
     <h2>Ingredients for searching</h2>
-    <ul id="list-ingredients">
+    <ul id="list-ingredients" class="list-group">
         {% for ingredient in ingredients %}
-        <li>{{ingredient}}</li>
+        <li class="list-group-item">{{ingredient}}</li>
         {% endfor %}
     </ul>
 </div>
@@ -80,12 +80,14 @@
 </div>
 
 <div id="div-recipe-detail-comment-form">
+  <div class="container-fluid">
     <form method="post">
         <label for="comment">Comment</label>
         <textarea name="comment"></textarea>
-        <input type="submit" value="Submit">
+        <input class="btn btn-primary" type="submit" value="Submit">
 
     </form>
+  </div>
 </div>
 
 <div id="div-comments">

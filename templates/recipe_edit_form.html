@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
+      <div class="form-group">
 <form method="post">
     <label for="name">Name</label>
-    <input required name="name" type="text" value="{{recipe.recipe_name.as_ref().unwrap()}}">
+    <input class="form-control" required name="name" type="text" value="{{recipe.recipe_name.as_ref().unwrap()}}">
 
-    <select id="season" name="season" required>
+    <select class="form-select" id="season" name="season" required>
         {% for season in seasons %}
         <option {% if prefill_season== season.value_rofl() %} selected {% endif %}
                 value="{{season.value_rofl()}}">{{season.to_string()}}
@@ -15,7 +16,7 @@
     </select><br>
     <label for="course">Course</label>
 
-    <select id="course" name="course" required>
+    <select class="form-select" id="course" name="course" required>
         {% for course in courses %}
         <option {% if recipe.course_id== course.course_id.unwrap() %} selected {% endif %}
                 value="{{course.course_id.unwrap()}}">{{course.course_name.as_ref().unwrap()}}
@@ -24,7 +25,7 @@
     </select><br>
 
     <label for="book">Book</label>
-    <select id="book" name="book">
+    <select class="form-select" id="book" name="book">
         <option value="-1"></option>
         {% for book in books%}
         <option {% if recipe.book_id.as_ref().is_some() && book.book_id.as_ref().unwrap()==
@@ -48,16 +49,17 @@
     </p>
 
     <label for="ingredients">Ingredients</label>
-    <textarea name="ingredients">{{ingredients}}</textarea><br>
+    <textarea class="form-control" name="ingredients">{{ingredients}}</textarea><br>
 
     <label for="recipe_url">URL</label>
-    <input type="text" name="recipe_url" {% if recipe.recipe_url.as_ref().is_some() %}
+    <input class="form-control" type="text" name="recipe_url" {% if recipe.recipe_url.as_ref().is_some() %}
            value="{{recipe.recipe_url.as_ref().unwrap()}}" {%
            endif %}><br>
     <label for="recipe_text">The recipe itself</label>
-    <textarea name="recipe_text">{{recipe_text}}</textarea><br>
-    <input type="submit" value="edit">
+    <textarea class="form-control" name="recipe_text">{{recipe_text}}</textarea><br>
+    <input class="btn btn-primary" type="submit" value="edit">
 </form>
+      </div>
 
 
 {% endblock %}

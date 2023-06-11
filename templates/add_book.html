@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 
 
-{% block content%}
-<form id="form" method="post">
-    <label for="booktext">Book name</label>
-    <input id="booktext" name="booktext" required type="text">
-    <input type="submit" value="form">
-</form>
+{% block content %}
+    <div class="form-group">
+
+        <form id="form" method="post">
+            <label for="booktext">Book name</label>
+            <input class="form-control" id="booktext" name="booktext" required type="text">
+            <input class="btn btn-primary" type="submit" value="form">
+        </form>
+    </div>
 {% endblock %}

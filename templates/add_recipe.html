@@ -11,7 +11,7 @@
     <input id="name" name="name" required type="text"><br>
     <label for="season">Season</label>
 
-    <select id="season" name="season" required>
+    <select id="season" class="form-select" name="season" required>
         {% for season in seasons %}
         <option {% if prefill.season.is_some() && prefill.season.unwrap()== season.value_rofl() %} selected {% endif %}
                 value="{{season.value_rofl()}}">{{season.to_string()}}
@@ -21,7 +21,7 @@
     </select><br>
     <label for="course">Course</label>
 
-    <select id="course" name="course" required>
+    <select class="form-select" id="course" name="course" required>
         {% for course in courses %}
         <option {% if prefill.course.is_some() && course.course_id.unwrap()== prefill.course.unwrap() %} selected {%
                 endif %}
@@ -30,7 +30,7 @@
         {% endfor %}
     </select><br>
     <label for="book">Book</label>
-    <select id="book" name="book">
+    <select class="form-select" id="book" name="book">
         <option value="-1" {% if prefill.book.as_ref().is_none() %}selected{% endif %}>-</option>
         {% for book in books%}
         <option {% if prefill.book.is_some() && book.book_id.unwrap()== prefill.book.unwrap() %} selected {% endif %}
@@ -40,10 +40,10 @@
     </select><br>
 
     <label for="recipe_url">URL</label>
-    <input id="recipe_url" name="recipe_url" type="text"><br>
+    <input class="form-control" id="recipe_url" name="recipe_url" type="text"><br>
 
     <label for="page">Page</label>
-    <input id="page" name="page" type="number"><br>
+    <input class="form-control" id="page" name="page" type="number"><br>
 
     <p>Ingredients
     <ul>
@@ -53,12 +53,12 @@
     </ul>
     </p>
     <label for="ingredients">Ingredients</label>
-    <textarea name="ingredients"></textarea><br>
+    <textarea class="form-control" name="ingredients"></textarea><br>
 
     <label for="recipe_text">Recipe Text</label>
-    <textarea name="recipe_text"></textarea><br>
+    <textarea class="form-control" name="recipe_text"></textarea><br>
 
 
-    <input type="submit" value="Submit">
+    <input class="btn btn-primary" type="submit" value="Submit">
 </form>
 {% endblock %}

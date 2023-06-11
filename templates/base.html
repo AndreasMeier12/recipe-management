@@ -1,159 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 <head>
-    <title>{% block title %}{{ title }} - My Site{% endblock %}</title>
+    <title>{% block title %}{{ title }} - Recipes{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     {% block head %}{% endblock %}
     <style>
-
-        *, *:before, *:after {
-            box-sizing: border-box;
-        }
-
-
-        textarea {
-            width: 100%;
-            height: 150px;
-            padding: 12px 20px;
-            box-sizing: border-box;
-            border: 2px solid #ccc;
-            border-radius: 4px;
-            background-color: #f8f8f8;
-            resize: block;
-        }
-
-
-        input {
-            border: 2px solid red;
-            border-radius: 4px;
-            margin: 10px 0;
-        / / add top and bottom margin
-        }
-
-        select {
-            border: 2px solid red;
-            border-radius: 4px;
-            margin: 10px 0;
-        / / add top and bottom margin
-        }
-
-        .navbar {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            width: 80%
-        }
-
-        body {
-            background-color: #212121;
-            color: #969696;
-            margin-top: 80px;
-        }
-
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 80px;
-
-        }
-
-        header * {
-            display: inline;
-        }
-
-        .content {
-            padding: 8px;
-            width: 80%;
-            margin: auto;
-            box-sizing: border-box;
-
-
-        }
-
-        input {
-            width: 50%;
-            border: beige solid 1px;
-            background: lightgray;
-        }
-
-        select {
-            width: 50%;
-            border: beige solid 1px;
-            background: lightgray;
-
-        }
-
-        option {
-            background-color: #212121;
-            border: black solid 1px;
-
-        }
-
-        .my-btn {
-            background-color: gray;
-            color: lightgray;
-
-            padding: 15px 25px;
-            text-decoration: none;
-        }
-
-        .btn {
-            background-color: gray;
-            color: lightgray;
-            padding: 5px 5px;
-            text-decoration: none;
-        }
-
-        .submit-small {
-            width: 25%;
-        }
-
-        .tried-true {
-            background: darkgreen;
-
-        }
-
-        .deco {
-            border: 2px solid #D79334;
-            position: relative;
-        }
-
-        .deco:before, .deco:after {
-            border: 1px solid #D79334;
-            content: "";
-            position: absolute;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        a {
-            color: #969696;
-            text-decoration: underline;
-
-        }
-
-        pre {
-            white-space: pre-wrap; /* Since CSS 2.1 source https://stackoverflow.com/questions/248011/how-do-i-wrap-text-in-a-pre-tag */
-        }
-
-
-        .hline-deco {
-            width: 80%;
-            text-align: center;
-            border: none;
-            border-top: thin double #D79334;
-            color: #D79334;
-
-        }
-
-        .hline-deco:after {
-            content: " ";
-            display: inline-block;
-            position: relative;
-
-        }
-
         .js-neighborino-collapsed::after {
             content: "[+]";
             font-family: monospace;
@@ -164,6 +15,12 @@
             content: "[-]";
             font-family: monospace;
         }
+
+                .js-collapsed {
+            display: none !important;
+        }
+
+
 
         .js-collapsible {
             padding-left: 10px;
@@ -183,18 +40,18 @@
             for (const collapsible of collapsibles) {
                 collapsible.addEventListener('click', () => {
                     let child = collapsible.nextElementSibling
-                    if (child.style.display === 'block') {
-                        child.style.display = 'none'
-                    } else {
-                        child.style.display = 'block'
-                    }
 
                     if (collapsible.classList.contains("js-neighborino-visible")) {
                         collapsible.classList.remove("js-neighborino-visible");
                         collapsible.classList.add("js-neighborino-collapsed")
+                        child.classList.add("js-collapsed")
+
+
+
                     } else {
                         collapsible.classList.add("js-neighborino-visible");
                         collapsible.classList.remove("js-neighborino-collapsed")
+                        child.classList.remove("js-collapsed")
                     }
 
                 })
@@ -202,31 +59,35 @@
         });
     </script>
 </head>
-<body>
-<header>
-    <nav class="navbar navbar-default">
-        <h1>Recipes</h1>
-        <ul class="">
 
+    <nav class="navbar navbar-expand-lg">
+  </button>
+
+    <div class="navbar-nav">
             {% for course in courses %}
-            <li><a class="my-btn" href="/course/{{course.course_name.as_ref().unwrap()}}">
+            <a class="nav-item nav-link" href="/course/{{course.course_name.as_ref().unwrap()}}">
                 {{course.course_name.as_ref().unwrap()}} </a>
-            </li>
 
             {% endfor %}
 
             {% if user_id.is_none() %}
-            <li><a class="my-btn" href="/login">Log in</a></li>
+            <a class="nav-item nav-link" href="/login">Log in</a>
             {% else %}
-            <li><a class="my-btn" href="/book/add">Add book</a></li>
-            <li><a class="my-btn" href="/recipe/add">Add recipe</a></li>
-            <li><a class="my-btn" href="/search">Search</a></li>
+            <a class="nav-item nav-link" href="/book/add">Add book</a>
+            <a class="nav-item nav-link" href="/recipe/add">Add recipe</a>
+            <a class="nav-item nav-link" href="/search">Search</a>
             {% endif %}
 
-        </ul>
+    </div>
     </nav>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+<header>
+
 </header>
-<div class="content deco" id="content">
+
+
+<div class="container" id="content">
     {% block content %}{% endblock %}
     Version: {{build_version}}
 </div>
