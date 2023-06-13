@@ -54,7 +54,7 @@
 <ul class="list-group">
     {% for recipe in recipes.as_ref().unwrap() %}
     <li class="list-group-item"><a href="/recipe/detail/{{recipe.recipe_id.as_ref().unwrap()}}">{{recipe.recipe_name.as_ref().unwrap()}}</a>
-        {% if recipe.recipe_url.as_ref().is_some() %} - <a href="//{{recipe.recipe_url.as_ref().unwrap()}}">Link</a>{%
+        {% if recipe.recipe_url.as_ref().is_some() %} - <a href="{{recipe.recipe_url.as_ref().unwrap()}}">Link</a>{%
         endif %}
         {% let ingredients = recipes_to_ingredients.get(recipe.recipe_id.as_ref().unwrap()) %}
         {% if ingredients.is_some()%}
