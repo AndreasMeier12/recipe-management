@@ -51,7 +51,7 @@
                     id="js-btn-tried-{{cur_id}}"> {% if has_tried %} misclicked? {% else%} tried? {% endif %}
             </button>
             {% endif %}
-            {% if recipe.recipe_url.as_ref().is_some() %} <a href="//{{recipe.recipe_url.as_ref().unwrap()}}">Link</a>
+            {% if recipe.recipe_url.as_ref().is_some() %} <a href="{{recipe.recipe_url.as_ref().unwrap()}}">Link</a>
             {% endif %}
             {% let ingredients = recipes_to_ingredients.get(recipe.recipe_id.as_ref().unwrap()) %}
             {% if ingredients.is_some()%}
