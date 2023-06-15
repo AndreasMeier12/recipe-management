@@ -420,6 +420,9 @@ async fn search_form(session: WritableSession) -> Response {
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
+    let id_to_book_name = books.iter()
+        .map(|x| (x.book_id.clone().unwrap(), x.book_name.clone().unwrap()))
+        .collect();
 
     let _build_version = env!("VERGEN_GIT_SHA");
 
@@ -433,6 +436,7 @@ async fn search_form(session: WritableSession) -> Response {
         user_id: maybe_user_id,
         build_version: "build_version",
         prefill: SearchPrefill::default(),
+        id_to_book_name
     }.get()).into_response();
 }
 
@@ -481,6 +485,10 @@ async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>
         .into_group_map();
 
     let build_version = env!("VERGEN_GIT_SHA");
+        let id_to_book_name = books.iter()
+        .map(|x| (x.book_id.clone().unwrap(), x.book_name.clone().unwrap()))
+        .collect();
+
 
     return Html(SearchForm {
         seasons: ESeason::get_seasons(),
@@ -492,6 +500,8 @@ async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>
         user_id: maybe_user_id,
         build_version,
         prefill: form,
+        id_to_book_name
+
     }
         .get()).into_response();
 }

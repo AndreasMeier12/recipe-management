@@ -56,7 +56,7 @@
     <li class="list-group-item"><a href="/recipe/detail/{{recipe.recipe_id.as_ref().unwrap()}}">{{recipe.recipe_name.as_ref().unwrap()}}</a>
         {% if recipe.recipe_url.as_ref().is_some() %} - <a href="{{recipe.recipe_url.as_ref().unwrap()}}">Link</a>{%
         endif %}
-        {% let ingredients = recipes_to_ingredients.get(recipe.recipe_id.as_ref().unwrap()) %}
+        {% let ingredients = recipes_to_ingredients.get(recipe.recipe_id.as_ref().unwrap()) %} {% if recipe.book_id.is_some() %}({{ id_to_book_name.get(recipe.book_id.as_ref().unwrap()).unwrap() }}){% endif %}
         {% if ingredients.is_some()%}
         <span class="js-collapse js-neighborino-collapsed">Ingredients</span>
         <ul class="js-collapsible list-group js-collapsed">

@@ -108,6 +108,7 @@ pub struct SearchForm<'a> {
     pub user_id: Option<i32>,
     pub build_version: &'a str,
     pub prefill: SearchPrefill,
+    pub id_to_book_name: HashMap<i32, String>,
     // in your template
 }
 
