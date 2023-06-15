@@ -617,7 +617,7 @@ struct PutRecipe {
     season: i32,
     ingredients: Option<String>,
     page: Option<String>,
-    url: Option<String>,
+    recipe_url: Option<String>,
     recipe_text: Option<String>
 }
 
@@ -639,7 +639,7 @@ async fn put_recipe(session: WritableSession, Path(path): Path<i32>, Form(form):
             .load::<FullRecipe>(x)
             .unwrap();
         let old_recipe = old_recipe_query.first().unwrap();
-        let update_url = form.url.filter(|x| !(x.trim().is_empty()));
+        let update_url = form.recipe_url.filter(|x| !(x.trim().is_empty()));
 
 
         let edit_recipe = FullInsertRecipe {
