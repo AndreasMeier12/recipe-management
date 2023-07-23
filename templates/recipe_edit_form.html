@@ -36,7 +36,7 @@
     </select><br>
 
     <label for="page">Page</label>
-    <input type="number" name="page" {% if recipe.page.as_ref().is_some() %} value="{{recipe.page.as_ref().unwrap()}}"
+    <input class="form-control" type="number" name="page" {% if recipe.page.as_ref().is_some() %} value="{{recipe.page.as_ref().unwrap()}}"
            {%
            endif %}><br>
 
