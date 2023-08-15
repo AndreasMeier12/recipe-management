@@ -56,8 +56,8 @@ WHERE recipe_comment.content LIKE '%{}%')", name_for_real, name_for_real, name_f
 fn handle_seasons( params: &SearchPrefill) -> String{
     let seasons = vec![params.season1, params.season2, params.season3, params.season4, params.season5];
     let search_seasons: Vec<String> = seasons.iter().enumerate()
-        .filter(|(i, x)| x.is_some())
-        .map(|(i, x)| (i+1).to_string())
+        .filter(|(_i, x)| x.is_some())
+        .map(|(i, _x)| (i+1).to_string())
         .collect();
     if search_seasons.is_empty(){
         return "".to_string();
