@@ -15,11 +15,11 @@
     <input class="form-control" id="name" name="name" type="text" value="{{ prefill.template_name() }}"><br>
 
     <label for="season">Season</label>
-    <select id="season" name="season" class="form-select" required>
-        <option value="-1"></option>
         {% for season in seasons %}
-        <option value="{{season.value_rofl()}}" {% if prefill.season.unwrap_or(-1) == season.value_i32()  %}selected{% endif %}>{{season.to_string()}}
-        </option>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="season{{ season.value_i32() }}" name="season{{ season.value_i32() }}" value="1">
+          <label class="form-check-label" for="season{{ season.value_i32() }}">{{ season.to_string() }}</label>
+        </div>
         {% endfor %}
 
     </select><br>
