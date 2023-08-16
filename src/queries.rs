@@ -1,3 +1,4 @@
+use std::io::empty;
 use itertools::Itertools;
 
 use crate::args::SearchPrefill;
@@ -9,7 +10,10 @@ pub fn build_search_query(params: &SearchPrefill, user_id: i32) -> String {
         simple_criteria.push(format!("book_id={}", params.book.unwrap()));
     }
 
-    simple_criteria.push(handle_seasons(params));
+    let seasons = handle_seasons(params);
+    if seasons.is_some() {
+        simple_criteria.push(seasons.unwrap());
+    }
 
     if params.course.filter(|x| *x >= 0).is_some() {
         simple_criteria.push(format!("course_id={}", params.course.unwrap()))
@@ -53,17 +57,17 @@ WHERE recipe_comment.content LIKE '%{}%')", name_for_real, name_for_real, name_f
     return res;
 }
 
-fn handle_seasons( params: &SearchPrefill) -> String{
+fn handle_seasons( params: &SearchPrefill) -> Option<String>{
     let seasons = vec![params.season1, params.season2, params.season3, params.season4, params.season5];
     let search_seasons: Vec<String> = seasons.iter().enumerate()
         .filter(|(_i, x)| x.is_some())
         .map(|(i, _x)| (i+1).to_string())
         .collect();
     if search_seasons.is_empty(){
-        return "".to_string();
+        return None;
     }
 
-    return format!("primary_season IN ({})", search_seasons.join(","));
+    return Some(format!("primary_season IN ({})", search_seasons.join(",")));
 
 
 
