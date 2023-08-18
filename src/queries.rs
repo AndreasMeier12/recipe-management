@@ -1,4 +1,3 @@
-use std::io::empty;
 use itertools::Itertools;
 
 use crate::args::SearchPrefill;
