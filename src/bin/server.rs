@@ -4,9 +4,7 @@ extern crate log;
 
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::RandomState;
-
 use std::net::SocketAddr;
-
 
 use argon2::{
     Argon2,
@@ -15,13 +13,11 @@ use argon2::{
     },
 };
 use axum::{Form, Router, routing::{get, post}};
-use axum::{response::{Html}};
+use axum::response::Html;
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
-use axum_sessions::{async_session::CookieStore, extractors::{WritableSession}, SessionLayer};
-
-
+use axum_sessions::{async_session::CookieStore, extractors::WritableSession, SessionLayer};
 use axum_sessions::async_session::log::trace;
 use diesel::{select, sql_query};
 use diesel::dsl::{exists, max};
@@ -31,8 +27,6 @@ use diesel::sql_types::{Integer, Text};
 use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
-
-
 use serde::Deserialize;
 
 use recipemanagement::*;
@@ -41,11 +35,7 @@ use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::queries::build_search_query;
 use recipemanagement::schema::course::dsl::course;
-
-
-
 use recipemanagement::secret::get_secret;
-
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
 
@@ -415,8 +405,7 @@ async fn search_form(session: WritableSession) -> Response {
 
     use recipemanagement::schema::book::dsl::*;
 
-    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
-    use recipemanagement::schema::course::dsl::*;
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap().into_iter().sorted_by(|x, y| x.book_name.as_ref().unwrap().cmp(y.book_name.as_ref().unwrap())).collect();
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
