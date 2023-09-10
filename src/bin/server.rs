@@ -13,10 +13,10 @@ use argon2::{
     },
 };
 use axum::{Form, Router, routing::{get, post}};
-use axum::response::Html;
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
+use axum::response::Html;
 use axum_sessions::{async_session::CookieStore, extractors::WritableSession, SessionLayer};
 use axum_sessions::async_session::log::trace;
 use diesel::{select, sql_query};
@@ -35,6 +35,7 @@ use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::queries::build_search_query;
 use recipemanagement::schema::course::dsl::course;
+use recipemanagement::schema::recipe_text::dsl::recipe_text;
 use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
@@ -138,8 +139,16 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
 
     let books: Vec<QBook> = book.load::<QBook>(con).unwrap().into_iter().sorted_by(|x, y| x.book_name.as_ref().unwrap().cmp(y.book_name.as_ref().unwrap())).collect();
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
-    let course_refs: &Vec<QCourse> = &courses;
 
+    use recipemanagement::schema::recipe_text::dsl::*;
+    let texted: HashSet<i32> = recipe_text.load::<RecipeText>(con).unwrap().iter()
+        .filter(|x| !x.content.is_empty())
+        .map(|x| x.recipe_id).collect();
+    use recipemanagement::schema::recipe_comment::dsl::*;
+    let commented: HashSet<i32> = recipe_comment.load::<Comment>(con).unwrap().iter().map(|x| x.recipe_id).collect();
+
+
+    let course_refs: &Vec<QCourse> = &courses;
     let mut tried_ids: HashSet<i32> = HashSet::new();
     let maybe_user_id: Option<i32> = get_user_id(session);
     if maybe_user_id.is_some() {
@@ -149,6 +158,8 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
             .unwrap();
         tried_ids = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
     }
+
+
 
     use recipemanagement::schema::ingredient::dsl::*;
     let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
@@ -214,7 +225,7 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
     }
     let build_version = env!("VERGEN_GIT_SHA");
 
-    let content = CourseTemplate {
+    let das_content = CourseTemplate {
         course_name: asdf.course_name.as_ref().unwrap().as_str(),
         seasons: ESeason::get_seasons(),
         books: &books,
@@ -226,9 +237,11 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
         user_id: maybe_user_id,
         recipes_by_season_and_source,
         build_version,
+        commented,
+        texted
     }.get();
 
-    return Html(content);
+    return Html(das_content);
 }
 
 
@@ -414,6 +427,12 @@ async fn search_form(session: WritableSession) -> Response {
         .collect();
 
     let _build_version = env!("VERGEN_GIT_SHA");
+    use recipemanagement::schema::recipe_text::dsl::*;
+    let texted: HashSet<i32> = recipe_text.load::<RecipeText>(con).unwrap().iter()
+        .filter(|x| !x.content.is_empty())
+        .map(|x| x.recipe_id).collect();
+    use recipemanagement::schema::recipe_comment::dsl::*;
+    let commented: HashSet<i32> = recipe_comment.load::<Comment>(con).unwrap().iter().map(|x| x.recipe_id).collect();
 
     return Html(SearchForm {
         seasons: ESeason::get_seasons(),
@@ -425,7 +444,9 @@ async fn search_form(session: WritableSession) -> Response {
         user_id: maybe_user_id,
         build_version: "build_version",
         prefill: SearchPrefill::default(),
-        id_to_book_name
+        id_to_book_name,
+        commented,
+        texted
     }.get()).into_response();
 }
 
@@ -477,6 +498,12 @@ async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>
         let id_to_book_name = books.iter()
         .map(|x| (x.book_id.clone().unwrap(), x.book_name.clone().unwrap()))
         .collect();
+    use recipemanagement::schema::recipe_text::dsl::*;
+    let texted: HashSet<i32> = recipe_text.load::<RecipeText>(con).unwrap().iter()
+        .filter(|x| !x.content.is_empty())
+        .map(|x| x.recipe_id).collect();
+    use recipemanagement::schema::recipe_comment::dsl::*;
+    let commented: HashSet<i32> = recipe_comment.load::<Comment>(con).unwrap().iter().map(|x| x.recipe_id).collect();
 
 
     return Html(SearchForm {
@@ -489,7 +516,9 @@ async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>
         user_id: maybe_user_id,
         build_version,
         prefill: form,
-        id_to_book_name
+        id_to_book_name,
+        commented,
+        texted
 
     }
         .get()).into_response();

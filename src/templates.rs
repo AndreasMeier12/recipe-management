@@ -44,6 +44,9 @@ pub struct CourseTemplate<'a> {
     pub user_id: Option<i32>,
     pub recipes_by_season_and_source: Vec<(ESeason, Vec<(String, Vec<FullRecipe>)>)>,
     pub build_version: &'a str,
+    pub commented: HashSet<i32>,
+    pub texted: HashSet<i32>,
+
 
     // in your template
 }
@@ -109,6 +112,8 @@ pub struct SearchForm<'a> {
     pub build_version: &'a str,
     pub prefill: SearchPrefill,
     pub id_to_book_name: HashMap<i32, String>,
+    pub commented: HashSet<i32>,
+    pub texted: HashSet<i32>,
     // in your template
 }
 

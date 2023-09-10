@@ -71,3 +71,11 @@ fn handle_seasons( params: &SearchPrefill) -> Option<String>{
 
 
 }
+
+pub fn get_recipe_ids_with_comments() -> String {
+    "SELECT DISTINCT recipe_id FROM recipe_comment; ".to_string()
+}
+
+pub fn get_recipe_ids_with_texts() -> String {
+    "SELECT DISTINCT recipe_id FROM recipe_text;".to_string()
+}

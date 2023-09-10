@@ -31,8 +31,16 @@
 {% for season_source in recipes_by_season_and_source %}
 {% let season = season_source.clone().0 %}
 {% let sources = season_source.clone().1 %}
+    <h2>Legend</h2>
+    <ul>
+        <li>💬 - Comments</li>
+        <li>🗒️ - Recipe text</li>
+    </ul>
+
 <h1 class="js-collapse js-neighborino-visible">{{season.to_string()}} </h1>
 <div style="display: block" class="js-collapsible">
+
+    <hr>
 
     {% for source in sources%}
     <h2 class="js-collapse js-collapsible js-neighborino-visible">{{source.clone().0}}</h2>
@@ -62,6 +70,8 @@
                 {% endfor %}
             </ul>
             {% endif %}
+            {% if commented.contains(id_ref) %}💬{% endif %}
+            {% if texted.contains(id_ref) %}🗒️{% endif %}
 
 
         </li>
