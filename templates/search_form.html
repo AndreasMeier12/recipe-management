@@ -10,7 +10,7 @@
 
 {% block scripts %}
     <script>
-        addEventListener('DOMContentLoaded', (event) => {
+        addEventListener('DOMContentLoaded', () => {
             let btns = document.getElementsByClassName("js-btn-tried");
             for (const btn of btns) {
                 let recipeId = btn.dataset.id
