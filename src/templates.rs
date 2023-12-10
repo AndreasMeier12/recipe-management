@@ -114,6 +114,7 @@ pub struct SearchForm<'a> {
     pub id_to_book_name: HashMap<i32, String>,
     pub commented: HashSet<i32>,
     pub texted: HashSet<i32>,
+    pub tried_ids: HashSet<i32>
     // in your template
 }
 

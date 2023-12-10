@@ -414,7 +414,7 @@ async fn search_form(session: WritableSession) -> Response {
         return Redirect::to("/login").into_response();
     }
 
-    let con = &mut database::establish_connection();
+    let con: &mut LoggingConnection<SqliteConnection> = &mut database::establish_connection();
 
     use recipemanagement::schema::book::dsl::*;
 
@@ -433,6 +433,9 @@ async fn search_form(session: WritableSession) -> Response {
         .map(|x| x.recipe_id).collect();
     use recipemanagement::schema::recipe_comment::dsl::*;
     let commented: HashSet<i32> = recipe_comment.load::<Comment>(con).unwrap().iter().map(|x| x.recipe_id).collect();
+    let tried_ids: HashSet<i32> = query_tried(maybe_user_id.unwrap(), con);
+
+
 
     return Html(SearchForm {
         seasons: ESeason::get_seasons(),
@@ -446,8 +449,19 @@ async fn search_form(session: WritableSession) -> Response {
         prefill: SearchPrefill::default(),
         id_to_book_name,
         commented,
-        texted
+        texted,
+        tried_ids
     }.get()).into_response();
+}
+
+fn query_tried(query_user_id: i32, con: &mut LoggingConnection<SqliteConnection>) -> HashSet<i32> {
+    use recipemanagement::schema::tried::dsl::*;
+    let mut tried_ids: HashSet<i32> = HashSet::new();
+    let temp = tried.filter(user_id.eq(query_user_id))
+        .load::<Tried>(con)
+        .unwrap();
+    tried_ids = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
+    return tried_ids;
 }
 
 async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
@@ -504,6 +518,7 @@ async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>
         .map(|x| x.recipe_id).collect();
     use recipemanagement::schema::recipe_comment::dsl::*;
     let commented: HashSet<i32> = recipe_comment.load::<Comment>(con).unwrap().iter().map(|x| x.recipe_id).collect();
+    let tried_ids: HashSet<i32> = query_tried(maybe_user_id.expect("user should be logged in alrady"), con);
 
 
     return Html(SearchForm {
@@ -518,7 +533,8 @@ async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>
         prefill: form,
         id_to_book_name,
         commented,
-        texted
+        texted,
+        tried_ids
 
     }
         .get()).into_response();
