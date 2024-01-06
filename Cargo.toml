@@ -14,20 +14,21 @@ anyhow = "1.0"
 
 [dependencies]
 regex = "1"
-diesel = { version = "2.0.0", features = ["sqlite"] }
+diesel = { version = "2.1.4", features = ["sqlite"] }
 dotenvy = "0.15"
-itertools = "0.10.5"
+itertools = "0.12.0"
 axum = "0.6.1"
 tokio = { version = "1", features = ["full"] }
-askama = "0.11.1"
+askama = "0.12.1"
 serde = { version = "1.0.60" }
-argon2 = "0.4"
+argon2 = "0.5.2"
 rand_core = { version = "0.6", features = ["std"] }
-axum-sessions = "0.4.0"
+axum-sessions = "0.6.1"
 log = "0.4"
-env_logger = "0.9.0"
-diesel_logger = "0.2.0"
+env_logger = "0.10.1"
+diesel_logger = "0.3.0"
 hex = "0.4.3"
+tantivy = "0.21.1"
 
 
 [dependencies.rand]
