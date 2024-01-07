@@ -8,7 +8,7 @@ pub struct RecipePrefill {
 }
 
 #[derive(Deserialize)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct SearchPrefill {
     pub name: Option<String>,
     pub season: Option<i32>,

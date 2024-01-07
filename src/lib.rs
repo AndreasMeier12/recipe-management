@@ -8,3 +8,5 @@ pub mod queries;
 pub mod strops;
 pub mod secret;
 
+pub mod text_search;
+
