@@ -13,7 +13,7 @@ use argon2::{
     },
 };
 use axum::{Form, Router, routing::{get, post}};
-use axum::extract::{Path, Query};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::response::Html;
@@ -28,6 +28,8 @@ use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
 use serde::Deserialize;
+use tantivy::collector::TopDocs;
+use tantivy::query::QueryParser;
 
 use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
@@ -39,7 +41,7 @@ use recipemanagement::schema::recipe_text::dsl::recipe_text;
 use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
-use recipemanagement::text_search::{add_recipes, setup_search_state};
+use recipemanagement::text_search::{add_recipes, SearchState, setup_search_state};
 
 const SESSION_VERSION: usize = 1;
 const SESSION_VERSION_KEY: &str = "session_version";
@@ -422,7 +424,7 @@ async fn post_book(session: WritableSession, Form(form): Form<PostBook>) -> Redi
 }
 
 
-async fn search_form(session: WritableSession) -> Response {
+async fn search_form(State(search_sate): State<SearchState>, session: WritableSession) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -478,7 +480,13 @@ fn query_tried(query_user_id: i32, con: &mut LoggingConnection<SqliteConnection>
     return tried_ids;
 }
 
-async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
+async fn search_result(State(search_state): State<SearchState>, session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
+    let reader = search_state.index.reader().unwrap();
+    let query_parser = QueryParser::for_index(&search_state.index, vec![search_state.index.schema().get_field("title").unwrap()]);
+    let query = query_parser.parse_query(&*format!("hummus")).unwrap();
+    let searcher = reader.searcher();
+    let results = searcher.search(&query, &TopDocs::with_limit(10));
+
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
