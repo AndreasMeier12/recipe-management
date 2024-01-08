@@ -33,12 +33,13 @@ use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
-use recipemanagement::queries::build_search_query;
+use recipemanagement::queries::{build_search_query, query_all_recipes};
 use recipemanagement::schema::course::dsl::course;
 use recipemanagement::schema::recipe_text::dsl::recipe_text;
 use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
+use recipemanagement::text_search::{add_recipes, setup_search_state};
 
 const SESSION_VERSION: usize = 1;
 const SESSION_VERSION_KEY: &str = "session_version";
@@ -60,6 +61,14 @@ async fn main() {
         .write_style_or("MY_LOG_STYLE", "always");
 
     env_logger::init_from_env(env);
+    let searchState = setup_search_state().unwrap();
+    let con = &mut database::establish_connection();
+    let all_recipes = query_all_recipes(con);
+    let book_id_to_name: HashMap<i32, String> = HashMap::new();
+    let course_id_to_name: HashMap<i32, String> = HashMap::new();
+    add_recipes(&searchState.index, all_recipes, book_id_to_name, course_id_to_name);
+
+
 
 
     let app = Router::new().route("/", get(index_handler))
@@ -72,6 +81,7 @@ async fn main() {
         .route("/api/tried/:id", post(toggle_tried))
         .route("/recipe/detail/:id", get(recipe_detail).post(post_comment))
         .layer(session_layer)
+        .with_state(searchState)
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
 
@@ -92,6 +102,10 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+fn get_all_recipesWithIngredients() {
+    let con = &mut database::establish_connection();
 }
 
 async fn index_handler(session: WritableSession) -> Html<String> {

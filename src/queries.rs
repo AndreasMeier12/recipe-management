@@ -1,6 +1,15 @@
+use std::collections::HashMap;
+use std::ops::Deref;
+
+use diesel::{RunQueryDsl, SqliteConnection};
+use diesel_logger::LoggingConnection;
 use itertools::Itertools;
 
 use crate::args::SearchPrefill;
+use crate::models::{FullRecipe, Ingredient, RecipeIngredient};
+use crate::schema::ingredient::dsl::ingredient;
+use crate::schema::recipe::dsl::recipe;
+use crate::schema::recipe_ingredient::dsl::recipe_ingredient;
 
 pub fn build_search_query(params: &SearchPrefill, user_id: i32) -> String {
     let mut simple_criteria: Vec<String> = vec![];
@@ -78,4 +87,54 @@ pub fn get_recipe_ids_with_comments() -> String {
 
 pub fn get_recipe_ids_with_texts() -> String {
     "SELECT DISTINCT recipe_id FROM recipe_text;".to_string()
+}
+
+pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<(FullRecipe, Vec<String>)> {
+    use crate::schema::recipe::dsl::*;
+
+    let recipes: Vec<FullRecipe> = recipe.load::<FullRecipe>(con).unwrap();
+    use crate::schema::ingredient::dsl::*;
+    let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
+        .unwrap()
+        .iter()
+        .map(|x| (x.clone().id.unwrap(), x.name.clone().unwrap()))
+        .collect();
+    use crate::schema::recipe_ingredient::dsl::*;
+    let recipes_to_ingredients: HashMap<i32, Vec<String>> = recipe_ingredient.load::<RecipeIngredient>(con)
+        .unwrap()
+        .iter()
+        .map(|x| (x.recipe_id, id_to_ingredients.get(&x.ingredient_id)))
+        .filter(|x| x.clone().1.is_some())
+        .map(|x| (x.clone().0, x.clone().1.unwrap().clone()))
+        .into_group_map();
+    /*
+    let recipe_texts: HashMap<i32, RecipeText> = recipe_text.load::<RecipeText>(con)
+        .unwrap().iter().map(|x| (x.recipe_id, x.clone())).collect();
+*/
+    let olol: Vec<(FullRecipe, Vec<String>)> = recipes.iter()
+        .map(|x| map_recipe_and_ingredient(x, &recipes_to_ingredients))
+        .collect();
+    return olol;
+}
+
+/*
+pub fn query_all_books(con: &mut LoggingConnection<SqliteConnection>){
+
+
+}
+
+pub fn query_all_courses(con: &mut LoggingConnection<SqliteConnection>){
+
+
+}
+
+
+ */
+
+fn map_recipe_and_ingredient(x: &FullRecipe, recipes_to_ingredients: &HashMap<i32, Vec<String>>) -> (FullRecipe, Vec<String>) {
+    if recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).is_none() {
+        return (x.clone(), vec![]);
+    }
+
+    return (x.clone(), recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).unwrap().clone());
 }
