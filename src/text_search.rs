@@ -2,17 +2,17 @@ use std::collections::HashMap;
 
 use diesel::{Queryable, QueryableByName};
 use itertools::Itertools;
-use tantivy::Index;
+use tantivy::{Document, Index};
 use tantivy::schema::{FacetOptions, IndexRecordOption, Schema, TextFieldIndexing, TextOptions};
 use tantivy::tokenizer::{AsciiFoldingFilter, LowerCaser, SimpleTokenizer, TextAnalyzer};
 
 use crate::args::SearchPrefill;
-use crate::models::{FullRecipe, Ingredient};
+use crate::models::FullRecipe;
 use crate::parsetypes::ESeason;
 
 #[derive(Clone)]
 pub struct SearchState {
-    index: Index,
+    pub index: Index,
 }
 
 pub fn setup_search_state() -> tantivy::Result<SearchState> {
@@ -31,6 +31,18 @@ pub fn setup_search_state() -> tantivy::Result<SearchState> {
     });
 }
 
+const SCHEMA_TITLE: &'static str = "title";
+
+const SCHEMA_BODY: &'static str = "body";
+
+const SCHEMA_URL: &'static str = "url";
+
+const SCHEMA_BOOK: &'static str = "book";
+
+const SCHEMA_SEASON: &'static str = "season";
+
+const SCEHMA_COURSE: &'static str = "course";
+
 fn build_schema() -> Schema {
     let mut schema_builder = Schema::builder();
 
@@ -40,17 +52,32 @@ fn build_schema() -> Schema {
     let text_options = TextOptions::default()
         .set_indexing_options(text_field_indexing)
         .set_stored();
-    schema_builder.add_text_field("title", text_options.clone());
-    schema_builder.add_text_field("body", text_options.clone());
-    schema_builder.add_text_field("url", text_options.clone());
-    schema_builder.add_facet_field("book", FacetOptions::default());
-    schema_builder.add_facet_field("season", FacetOptions::default());
-    schema_builder.add_facet_field("course", FacetOptions::default());
+    schema_builder.add_text_field(SCHEMA_TITLE, text_options.clone());
+    schema_builder.add_text_field(SCHEMA_BODY, text_options.clone());
+    schema_builder.add_text_field(SCHEMA_URL, text_options.clone());
+    schema_builder.add_facet_field(SCHEMA_BOOK, FacetOptions::default());
+    schema_builder.add_facet_field(SCHEMA_SEASON, FacetOptions::default());
+    schema_builder.add_facet_field(SCEHMA_COURSE, FacetOptions::default());
     schema_builder.build()
 }
 
 
-pub fn add_recipes(index: Index, recipes: Vec<(FullRecipe, Vec<Ingredient>)>) {}
+const INDEX_MEMORY: usize = 50_000_000;
+
+pub fn add_recipes(index: &Index, recipes: Vec<(FullRecipe, Vec<String>)>, books_names: HashMap<i32, String>, course_names: HashMap<i32, String>) {
+    let schema = index.schema();
+    let mut index_writer = index.writer(INDEX_MEMORY).expect("Loook something's broken");
+    for recipe in recipes {
+        let mut doc = Document::default();
+        if let Some(i) = recipe.0.recipe_name {
+            doc.add_text(schema.get_field(SCHEMA_TITLE).unwrap(), i);
+        }
+
+
+        index_writer.add_document(doc);
+    }
+    index_writer.commit();
+}
 
 pub fn search() {}
 
