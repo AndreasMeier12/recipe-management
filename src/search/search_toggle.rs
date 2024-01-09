@@ -7,11 +7,11 @@ use tantivy::query::QueryParser;
 use crate::args::SearchPrefill;
 use crate::models::FullRecipe;
 use crate::queries::{build_index_search_query, build_search_query};
-use crate::text_search::SCHEMA_RECIPE_ID;
+use crate::text_search::{SCHEMA_BODY, SCHEMA_INGREDIENTS, SCHEMA_RECIPE_ID, SCHEMA_TITLE};
 
 pub fn search(search_args: &SearchPrefill, con: &mut LoggingConnection<SqliteConnection>, index: &Index, user_id: i32) -> Vec<FullRecipe> {
     let reader = index.reader().unwrap();
-    let query_parser = QueryParser::for_index(&index, vec![index.schema().get_field("title").unwrap()]);
+    let query_parser = QueryParser::for_index(&index, vec![index.schema().get_field(SCHEMA_TITLE).unwrap(), index.schema().get_field(SCHEMA_INGREDIENTS).unwrap(), index.schema().get_field(SCHEMA_BODY).unwrap()]);
     let query = query_parser.parse_query(&*format!("{}", search_args.clone().name.unwrap_or("".to_string()))).unwrap();
     let searcher = reader.searcher();
     let results = searcher.search(&query, &TopDocs::with_limit(1024));
