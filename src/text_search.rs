@@ -31,9 +31,9 @@ pub fn setup_search_state() -> tantivy::Result<SearchState> {
     });
 }
 
-const SCHEMA_TITLE: &'static str = "title";
+pub const SCHEMA_TITLE: &'static str = "title";
 
-const SCHEMA_BODY: &'static str = "body";
+pub const SCHEMA_BODY: &'static str = "body";
 
 const SCHEMA_URL: &'static str = "url";
 
@@ -41,9 +41,11 @@ const SCHEMA_BOOK: &'static str = "book";
 
 const SCHEMA_SEASON: &'static str = "season";
 
-const SCEHMA_COURSE: &'static str = "course";
+const SCHEMA_COURSE: &'static str = "course";
 
 pub const SCHEMA_RECIPE_ID: &'static str = "recipe_id";
+
+pub const SCHEMA_INGREDIENTS: &'static str = "ingredients";
 
 
 fn build_schema() -> Schema {
@@ -57,11 +59,12 @@ fn build_schema() -> Schema {
         .set_stored();
     schema_builder.add_text_field(SCHEMA_TITLE, text_options.clone());
     schema_builder.add_text_field(SCHEMA_BODY, text_options.clone());
+    schema_builder.add_text_field(SCHEMA_INGREDIENTS, text_options.clone());
     schema_builder.add_text_field(SCHEMA_URL, text_options.clone());
     schema_builder.add_text_field(SCHEMA_RECIPE_ID, STORED);
     schema_builder.add_facet_field(SCHEMA_BOOK, FacetOptions::default());
     schema_builder.add_facet_field(SCHEMA_SEASON, FacetOptions::default());
-    schema_builder.add_facet_field(SCEHMA_COURSE, FacetOptions::default());
+    schema_builder.add_facet_field(SCHEMA_COURSE, FacetOptions::default());
     schema_builder.build()
 }
 
@@ -75,6 +78,9 @@ pub fn add_recipes(index: &Index, recipes: Vec<(FullRecipe, Vec<String>)>, books
         let mut doc = Document::default();
         if let Some(i) = recipe.0.recipe_name {
             doc.add_text(schema.get_field(SCHEMA_TITLE).unwrap(), i);
+        }
+        for ingredient_name in recipe.1 {
+            doc.add_text(schema.get_field(SCHEMA_INGREDIENTS).unwrap(), ingredient_name);
         }
         doc.add_i64(schema.get_field(SCHEMA_RECIPE_ID).unwrap(), recipe.0.recipe_id.unwrap() as i64);
 
