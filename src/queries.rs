@@ -81,6 +81,11 @@ fn handle_seasons( params: &SearchPrefill) -> Option<String>{
 
 }
 
+pub fn build_index_search_query(ids: Vec<i64>) -> String {
+    let id_string = ids.iter().map(|x| x.to_string()).join(",");
+    return format!("SELECT * FROM recipe WHERE recipe_id IN ({})", id_string);
+}
+
 pub fn get_recipe_ids_with_comments() -> String {
     "SELECT DISTINCT recipe_id FROM recipe_comment; ".to_string()
 }

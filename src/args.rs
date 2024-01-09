@@ -20,6 +20,7 @@ pub struct SearchPrefill {
     pub season3: Option<i32>,
     pub season4: Option<i32>,
     pub season5: Option<i32>,
+    pub legacy: Option<i32>,
 
 
 }
