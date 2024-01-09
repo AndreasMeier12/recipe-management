@@ -72,6 +72,10 @@
         <option value="1" {% if prefill.tried == 1 %}selected{% endif %}>Yes</option>
         <option value="2" {% if prefill.tried == 2 %}selected{% endif %}>No</option>
     </select> <br>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="legacy" name="legacy" value="1">
+        <label class="form-check-label" for="legacy">Old search</label>
+    </div>
 
     <input class="btn btn-primary" type="submit" value="Search">
 </form>

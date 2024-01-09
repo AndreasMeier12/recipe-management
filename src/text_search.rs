@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use diesel::{Queryable, QueryableByName};
 use itertools::Itertools;
 use tantivy::{Document, Index};
-use tantivy::schema::{FacetOptions, IndexRecordOption, Schema, TextFieldIndexing, TextOptions};
+use tantivy::schema::{FacetOptions, IndexRecordOption, Schema, STORED, TextFieldIndexing, TextOptions};
 use tantivy::tokenizer::{AsciiFoldingFilter, LowerCaser, SimpleTokenizer, TextAnalyzer};
 
 use crate::args::SearchPrefill;
@@ -43,6 +43,9 @@ const SCHEMA_SEASON: &'static str = "season";
 
 const SCEHMA_COURSE: &'static str = "course";
 
+pub const SCHEMA_RECIPE_ID: &'static str = "recipe_id";
+
+
 fn build_schema() -> Schema {
     let mut schema_builder = Schema::builder();
 
@@ -55,6 +58,7 @@ fn build_schema() -> Schema {
     schema_builder.add_text_field(SCHEMA_TITLE, text_options.clone());
     schema_builder.add_text_field(SCHEMA_BODY, text_options.clone());
     schema_builder.add_text_field(SCHEMA_URL, text_options.clone());
+    schema_builder.add_text_field(SCHEMA_RECIPE_ID, STORED);
     schema_builder.add_facet_field(SCHEMA_BOOK, FacetOptions::default());
     schema_builder.add_facet_field(SCHEMA_SEASON, FacetOptions::default());
     schema_builder.add_facet_field(SCEHMA_COURSE, FacetOptions::default());
@@ -72,7 +76,7 @@ pub fn add_recipes(index: &Index, recipes: Vec<(FullRecipe, Vec<String>)>, books
         if let Some(i) = recipe.0.recipe_name {
             doc.add_text(schema.get_field(SCHEMA_TITLE).unwrap(), i);
         }
-
+        doc.add_i64(schema.get_field(SCHEMA_RECIPE_ID).unwrap(), recipe.0.recipe_id.unwrap() as i64);
 
         index_writer.add_document(doc);
     }
@@ -94,7 +98,7 @@ fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, season_
         parts.push(season_term)
     }
     if let Some(i) = course_names.get(&options.course.unwrap_or(-1)) {
-        parts.push(format!("+book:{}", i))
+        parts.push(format!("+course:{}", i))
     }
 
     return parts.join(" ");
@@ -147,6 +151,7 @@ mod tests {
             season3: None,
             season4: None,
             season5: None,
+            legacy: None,
         };
         let season_names = ESeason::to_map();
         let res = build_season_term(options, season_names);
@@ -167,6 +172,7 @@ mod tests {
             season3: Some(1),
             season4: Some(1),
             season5: Some(1),
+            legacy: None,
         };
         let season_names = ESeason::to_map();
         let res = build_season_term(options, season_names);

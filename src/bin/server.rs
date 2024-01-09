@@ -28,16 +28,15 @@ use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
 use serde::Deserialize;
-use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
 
 use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
-use recipemanagement::queries::{build_search_query, query_all_recipes};
+use recipemanagement::queries::query_all_recipes;
 use recipemanagement::schema::course::dsl::course;
 use recipemanagement::schema::recipe_text::dsl::recipe_text;
+use recipemanagement::search::search_toggle;
 use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
@@ -481,11 +480,6 @@ fn query_tried(query_user_id: i32, con: &mut LoggingConnection<SqliteConnection>
 }
 
 async fn search_result(State(search_state): State<SearchState>, session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
-    let reader = search_state.index.reader().unwrap();
-    let query_parser = QueryParser::for_index(&search_state.index, vec![search_state.index.schema().get_field("title").unwrap()]);
-    let query = query_parser.parse_query(&*format!("hummus")).unwrap();
-    let searcher = reader.searcher();
-    let results = searcher.search(&query, &TopDocs::with_limit(10));
 
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
@@ -508,11 +502,7 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
     
 
     let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
-
-    let query_string = build_search_query(&form, maybe_user_id.unwrap());
-    let recipes = sql_query(query_string)
-        .load::<FullRecipe>(con)
-        .ok().unwrap_or(vec![]);
+    let recipes = search_toggle::search(&form, con, &search_state.index, maybe_user_id.unwrap());
 
     use recipemanagement::schema::ingredient::dsl::*;
     let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
