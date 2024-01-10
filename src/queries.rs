@@ -6,7 +6,9 @@ use diesel_logger::LoggingConnection;
 use itertools::Itertools;
 
 use crate::args::SearchPrefill;
-use crate::models::{FullRecipe, Ingredient, RecipeIngredient};
+use crate::models::{FullRecipe, Ingredient, QBook, QCourse, RecipeIngredient, RecipeText};
+use crate::schema::book::dsl::book;
+use crate::schema::course::dsl::course;
 use crate::schema::ingredient::dsl::ingredient;
 use crate::schema::recipe::dsl::recipe;
 use crate::schema::recipe_ingredient::dsl::recipe_ingredient;
@@ -94,7 +96,7 @@ pub fn get_recipe_ids_with_texts() -> String {
     "SELECT DISTINCT recipe_id FROM recipe_text;".to_string()
 }
 
-pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<(FullRecipe, Vec<String>)> {
+pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<(RecipeQueryResult)> {
     use crate::schema::recipe::dsl::*;
 
     let recipes: Vec<FullRecipe> = recipe.load::<FullRecipe>(con).unwrap();
@@ -112,14 +114,42 @@ pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<(
         .filter(|x| x.clone().1.is_some())
         .map(|x| (x.clone().0, x.clone().1.unwrap().clone()))
         .into_group_map();
+
+    use crate::schema::recipe_text::dsl::*;
+    let ids_to_texts: HashMap<i32, String> = recipe_text.load::<RecipeText>(con)
+        .unwrap()
+        .iter()
+        .map(|x| (x.recipe_id.clone(), x.content.clone()))
+        .collect();
+
+    use crate::schema::book::dsl::*;
+    let _books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    use crate::schema::course::dsl::*;
+    let book_id_to_name: HashMap<i32, String> = _books.iter()
+        .map(|x| (x.clone().book_id.unwrap(), x.clone().book_name.unwrap()))
+        .collect();
+
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let course_id_to_name: HashMap<i32, String> = courses.iter()
+        .map(|x| (x.course_id.unwrap(), x.course_name.as_ref().unwrap().clone()))
+        .collect();
     /*
     let recipe_texts: HashMap<i32, RecipeText> = recipe_text.load::<RecipeText>(con)
         .unwrap().iter().map(|x| (x.recipe_id, x.clone())).collect();
 */
-    let olol: Vec<(FullRecipe, Vec<String>)> = recipes.iter()
-        .map(|x| map_recipe_and_ingredient(x, &recipes_to_ingredients))
+    let olol: Vec<RecipeQueryResult> = recipes.iter()
+        .map(|x| map_recipe_and_ingredient(x, &recipes_to_ingredients, &ids_to_texts, &course_id_to_name, &book_id_to_name))
         .collect();
     return olol;
+}
+
+pub struct RecipeQueryResult {
+    pub recipe: FullRecipe,
+    pub ingredients: Vec<String>,
+    pub recipe_text: Option<String>,
+    pub comments: Vec<String>,
+    pub course_name: String,
+    pub book_name: Option<String>,
 }
 
 /*
@@ -136,10 +166,25 @@ pub fn query_all_courses(con: &mut LoggingConnection<SqliteConnection>){
 
  */
 
-fn map_recipe_and_ingredient(x: &FullRecipe, recipes_to_ingredients: &HashMap<i32, Vec<String>>) -> (FullRecipe, Vec<String>) {
-    if recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).is_none() {
-        return (x.clone(), vec![]);
-    }
+fn map_recipe_and_ingredient(x: &FullRecipe, recipes_to_ingredients: &HashMap<i32, Vec<String>>, ids_to_texts: &HashMap<i32, String>,
+                             course_id_to_name: &HashMap<i32, String>, book_id_to_name: &HashMap<i32, String>,
+) -> RecipeQueryResult {
+    let ingredients = if recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).is_none() {
+        vec![]
+    } else {
+        recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).unwrap().clone()
+    };
+    let course_name = course_id_to_name.get(&x.course_id).unwrap();
+    let book_name = course_id_to_name.get(&x.recipe_id.unwrap()).map(|x| x.clone());
+    let text = ids_to_texts.get(&x.recipe_id.unwrap());
 
-    return (x.clone(), recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).unwrap().clone());
+
+    return RecipeQueryResult {
+        recipe: x.clone(),
+        ingredients,
+        recipe_text: text.map(|x| x.clone()),
+        comments: vec![],
+        course_name: course_name.clone(),
+        book_name: book_name,
+    };
 }
