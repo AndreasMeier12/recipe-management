@@ -89,6 +89,9 @@ pub fn add_recipes(index: &Index, recipes: Vec<RecipeQueryResult>, books_names: 
         if let Some(i) = enriched_recipe.book_name {
             doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(format!("/book/{}", i.as_str()).as_str()));
         }
+        if let Some(i) = enriched_recipe.recipe_text {
+            doc.add_text(schema.get_field(SCHEMA_BODY).unwrap(), i);
+        }
         let season_name = season_ids_to_seasons.get(&(enriched_recipe.recipe.primary_season as usize)).map(|x| x.to_string()).unwrap();
         doc.add_facet(schema.get_field(SCHEMA_SEASON).unwrap(), Facet::from(format!("/season/{}", season_name.as_str()).as_str()));
 
