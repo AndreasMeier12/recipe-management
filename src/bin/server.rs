@@ -28,6 +28,7 @@ use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
 use serde::Deserialize;
+use tantivy::Index;
 
 use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
@@ -67,7 +68,7 @@ async fn main() {
     let all_recipes = query_all_recipes(con);
     let book_id_to_name: HashMap<i32, String> = HashMap::new();
     let course_id_to_name: HashMap<i32, String> = HashMap::new();
-    add_recipes(&searchState.index, all_recipes, book_id_to_name, course_id_to_name);
+    add_recipes(searchState, all_recipes, book_id_to_name, course_id_to_name);
 
 
 
@@ -103,6 +104,17 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+fn nuke_and_rebuild_index(index: &Index) {
+    let mut writer = index.writer(15000000).unwrap();
+    writer.delete_all_documents();
+    writer.commit().unwrap();
+    let con = &mut database::establish_connection();
+    let all_recipes = query_all_recipes(con);
+    let book_id_to_name: HashMap<i32, String> = HashMap::new();
+    let course_id_to_name: HashMap<i32, String> = HashMap::new();
+    add_recipes(index, all_recipes, book_id_to_name, course_id_to_name);
 }
 
 fn get_all_recipesWithIngredients() {
@@ -308,7 +320,7 @@ struct PostRecipe {
 
 }
 
-async fn post_recipe(session: WritableSession, Form(form): Form<PostRecipe>) -> Response {
+async fn post_recipe(State(search_state): State<SearchState>, session: WritableSession, Form(form): Form<PostRecipe>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -363,6 +375,8 @@ async fn post_recipe(session: WritableSession, Form(form): Form<PostRecipe>) -> 
         return Ok(());
     }
     ).unwrap();
+    nuke_and_rebuild_index(&search_state.index);
+
     let url = format!("/recipe/add?season={}&course={}&book={}", form.season, form.course, book_id.unwrap_or(-1));
 
 
@@ -667,7 +681,7 @@ struct PutRecipe {
     recipe_text: Option<String>
 }
 
-async fn put_recipe(session: WritableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
+async fn put_recipe(State(search_state): State<SearchState>, session: WritableSession, Path(path): Path<i32>, Form(form): Form<PutRecipe>) -> Redirect {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login");
@@ -796,6 +810,7 @@ async fn put_recipe(session: WritableSession, Path(path): Path<i32>, Form(form):
         Ok(())
     }
     );
+    nuke_and_rebuild_index(&search_state.index);
     return Redirect::to(format!("/recipe/detail/{}", path).as_str())
 }
 
