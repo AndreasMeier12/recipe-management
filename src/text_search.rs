@@ -28,6 +28,7 @@ pub fn setup_search_state() -> tantivy::Result<SearchState> {
         .register("ascii", tokenizer);
     return Ok(SearchState {
         index,
+
     });
 }
 
@@ -71,6 +72,37 @@ fn build_schema() -> Schema {
 
 const INDEX_MEMORY: usize = 50_000_000;
 
+pub fn rebuild_index(index: &Index, recipes: Vec<RecipeQueryResult>, books_names: HashMap<i32, String>, course_names: HashMap<i32, String>)
+{
+    let schema = index.schema();
+    let mut index_writer = index.writer(INDEX_MEMORY).expect("Loook something's broken");
+    index_writer.delete_all_documents();
+    let season_ids_to_seasons = ESeason::to_map();
+    for enriched_recipe in recipes {
+        let mut doc = Document::default();
+        if let Some(i) = enriched_recipe.recipe.recipe_name {
+            doc.add_text(schema.get_field(SCHEMA_TITLE).unwrap(), i);
+        }
+        for ingredient_name in enriched_recipe.ingredients {
+            doc.add_text(schema.get_field(SCHEMA_INGREDIENTS).unwrap(), ingredient_name);
+        }
+        doc.add_i64(schema.get_field(SCHEMA_RECIPE_ID).unwrap(), enriched_recipe.recipe.recipe_id.unwrap() as i64);
+        doc.add_facet(schema.get_field(SCHEMA_COURSE).unwrap(), Facet::from(format!("/course/{}", enriched_recipe.course_name).as_str()));
+
+        if let Some(i) = enriched_recipe.book_name {
+            doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(format!("/book/{}", i.as_str()).as_str()));
+        }
+        if let Some(i) = enriched_recipe.recipe_text {
+            doc.add_text(schema.get_field(SCHEMA_BODY).unwrap(), i);
+        }
+        let season_name = season_ids_to_seasons.get(&(enriched_recipe.recipe.primary_season as usize)).map(|x| x.to_string()).unwrap();
+        doc.add_facet(schema.get_field(SCHEMA_SEASON).unwrap(), Facet::from(format!("/season/{}", season_name.as_str()).as_str()));
+
+        index_writer.add_document(doc);
+    }
+    index_writer.commit();
+}
+
 pub fn add_recipes(index: &Index, recipes: Vec<RecipeQueryResult>, books_names: HashMap<i32, String>, course_names: HashMap<i32, String>) {
     let schema = index.schema();
     let mut index_writer = index.writer(INDEX_MEMORY).expect("Loook something's broken");
@@ -98,6 +130,8 @@ pub fn add_recipes(index: &Index, recipes: Vec<RecipeQueryResult>, books_names: 
         index_writer.add_document(doc);
     }
     index_writer.commit();
+
+    index_writer.wait_merging_threads();
 }
 
 pub fn search() {}
