@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use diesel::{Queryable, QueryableByName};
 use itertools::Itertools;
-use tantivy::{Document, Index};
+use tantivy::{Document, Index, IndexWriter};
 use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, STORED, TextFieldIndexing, TextOptions};
 use tantivy::tokenizer::{AsciiFoldingFilter, LowerCaser, SimpleTokenizer, TextAnalyzer};
+use tokio::sync::Mutex;
 
 use crate::args::SearchPrefill;
 use crate::parsetypes::ESeason;
@@ -13,6 +15,7 @@ use crate::queries::RecipeQueryResult;
 #[derive(Clone)]
 pub struct SearchState {
     pub index: Index,
+    writer: Arc<Mutex<IndexWriter>>
 }
 
 pub fn setup_search_state() -> tantivy::Result<SearchState> {
@@ -27,7 +30,8 @@ pub fn setup_search_state() -> tantivy::Result<SearchState> {
     index.tokenizers()
         .register("ascii", tokenizer);
     return Ok(SearchState {
-        index,
+        index: index.clone(),
+        writer: Arc::new(Mutex::new(index.clone().writer(INDEX_MEMORY).unwrap()))
 
     });
 }
@@ -103,9 +107,10 @@ pub fn rebuild_index(index: &Index, recipes: Vec<RecipeQueryResult>, books_names
     index_writer.commit();
 }
 
-pub fn add_recipes(index: &Index, recipes: Vec<RecipeQueryResult>, books_names: HashMap<i32, String>, course_names: HashMap<i32, String>) {
-    let schema = index.schema();
-    let mut index_writer = index.writer(INDEX_MEMORY).expect("Loook something's broken");
+pub fn add_recipes(search_state: &SearchState, recipes: Vec<RecipeQueryResult>, books_names: HashMap<i32, String>, course_names: HashMap<i32, String>) {
+    let schema = search_state.index.schema();
+    let mut index_writer = futures::executor::block_on(search_state.writer.lock());
+    index_writer.delete_all_documents();
     let season_ids_to_seasons = ESeason::to_map();
     for enriched_recipe in recipes {
         let mut doc = Document::default();
@@ -131,7 +136,6 @@ pub fn add_recipes(index: &Index, recipes: Vec<RecipeQueryResult>, books_names: 
     }
     index_writer.commit();
 
-    index_writer.wait_merging_threads();
 }
 
 pub fn search() {}
