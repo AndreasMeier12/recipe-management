@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use diesel::{Queryable, QueryableByName};
 use itertools::Itertools;
 use tantivy::{Document, Index, IndexWriter};
 use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, STORED, TextFieldIndexing, TextOptions};
@@ -23,7 +22,7 @@ pub fn setup_search_state() -> tantivy::Result<SearchState> {
 
 
     let index = Index::builder().schema(schema.clone()).create_from_tempdir()?;
-    let mut tokenizer = TextAnalyzer::builder(SimpleTokenizer::default())
+    let tokenizer = TextAnalyzer::builder(SimpleTokenizer::default())
         .filter(LowerCaser)
         .filter(AsciiFoldingFilter)
         .build();
@@ -76,41 +75,11 @@ fn build_schema() -> Schema {
 
 const INDEX_MEMORY: usize = 50_000_000;
 
-pub fn rebuild_index(index: &Index, recipes: Vec<RecipeQueryResult>, books_names: HashMap<i32, String>, course_names: HashMap<i32, String>)
-{
-    let schema = index.schema();
-    let mut index_writer = index.writer(INDEX_MEMORY).expect("Loook something's broken");
-    index_writer.delete_all_documents();
-    let season_ids_to_seasons = ESeason::to_map();
-    for enriched_recipe in recipes {
-        let mut doc = Document::default();
-        if let Some(i) = enriched_recipe.recipe.recipe_name {
-            doc.add_text(schema.get_field(SCHEMA_TITLE).unwrap(), i);
-        }
-        for ingredient_name in enriched_recipe.ingredients {
-            doc.add_text(schema.get_field(SCHEMA_INGREDIENTS).unwrap(), ingredient_name);
-        }
-        doc.add_i64(schema.get_field(SCHEMA_RECIPE_ID).unwrap(), enriched_recipe.recipe.recipe_id.unwrap() as i64);
-        doc.add_facet(schema.get_field(SCHEMA_COURSE).unwrap(), Facet::from(format!("/course/{}", enriched_recipe.course_name).as_str()));
 
-        if let Some(i) = enriched_recipe.book_name {
-            doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(format!("/book/{}", i.as_str()).as_str()));
-        }
-        if let Some(i) = enriched_recipe.recipe_text {
-            doc.add_text(schema.get_field(SCHEMA_BODY).unwrap(), i);
-        }
-        let season_name = season_ids_to_seasons.get(&(enriched_recipe.recipe.primary_season as usize)).map(|x| x.to_string()).unwrap();
-        doc.add_facet(schema.get_field(SCHEMA_SEASON).unwrap(), Facet::from(format!("/season/{}", season_name.as_str()).as_str()));
-
-        index_writer.add_document(doc);
-    }
-    index_writer.commit();
-}
-
-pub fn add_recipes(search_state: &SearchState, recipes: Vec<RecipeQueryResult>, books_names: HashMap<i32, String>, course_names: HashMap<i32, String>) {
+pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<RecipeQueryResult>) {
     let schema = search_state.index.schema();
     let mut index_writer = futures::executor::block_on(search_state.writer.lock());
-    index_writer.delete_all_documents();
+    index_writer.delete_all_documents().expect("Writer access should be there");
     let season_ids_to_seasons = ESeason::to_map();
     for enriched_recipe in recipes {
         let mut doc = Document::default();
@@ -132,9 +101,9 @@ pub fn add_recipes(search_state: &SearchState, recipes: Vec<RecipeQueryResult>, 
         let season_name = season_ids_to_seasons.get(&(enriched_recipe.recipe.primary_season as usize)).map(|x| x.to_string()).unwrap();
         doc.add_facet(schema.get_field(SCHEMA_SEASON).unwrap(), Facet::from(format!("/season/{}", season_name.as_str()).as_str()));
 
-        index_writer.add_document(doc);
+        index_writer.add_document(doc).expect("Writing should still work");
     }
-    index_writer.commit();
+    index_writer.commit().expect("Commit should work");
 
 }
 
@@ -181,9 +150,6 @@ fn build_season_term(options: SearchPrefill, season_names: HashMap<usize, ESeaso
     return Some(format!("+season in [{}]", inner));
 }
 
-fn create_document() {}
-
-pub fn nuke_and_rebuild_index() {}
 
 #[cfg(test)]
 mod tests {
