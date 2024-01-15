@@ -7,11 +7,6 @@ use itertools::Itertools;
 
 use crate::args::SearchPrefill;
 use crate::models::{FullRecipe, Ingredient, QBook, QCourse, RecipeIngredient, RecipeText};
-use crate::schema::book::dsl::book;
-use crate::schema::course::dsl::course;
-use crate::schema::ingredient::dsl::ingredient;
-use crate::schema::recipe::dsl::recipe;
-use crate::schema::recipe_ingredient::dsl::recipe_ingredient;
 
 pub fn build_search_query(params: &SearchPrefill, user_id: i32) -> String {
     let mut simple_criteria: Vec<String> = vec![];
@@ -96,7 +91,7 @@ pub fn get_recipe_ids_with_texts() -> String {
     "SELECT DISTINCT recipe_id FROM recipe_text;".to_string()
 }
 
-pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<(RecipeQueryResult)> {
+pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<RecipeQueryResult> {
     use crate::schema::recipe::dsl::*;
 
     let recipes: Vec<FullRecipe> = recipe.load::<FullRecipe>(con).unwrap();
@@ -175,7 +170,7 @@ fn map_recipe_and_ingredient(x: &FullRecipe, recipes_to_ingredients: &HashMap<i3
         recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).unwrap().clone()
     };
     let course_name = course_id_to_name.get(&x.course_id).unwrap();
-    let book_name = course_id_to_name.get(&x.recipe_id.unwrap()).map(|x| x.clone());
+    let book_name = book_id_to_name.get(&x.recipe_id.unwrap()).map(|x| x.clone());
     let text = ids_to_texts.get(&x.recipe_id.unwrap());
 
 

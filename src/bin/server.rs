@@ -35,12 +35,11 @@ use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::queries::query_all_recipes;
 use recipemanagement::schema::course::dsl::course;
-use recipemanagement::schema::recipe_text::dsl::recipe_text;
 use recipemanagement::search::search_toggle;
 use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
-use recipemanagement::text_search::{add_recipes, SearchState, setup_search_state};
+use recipemanagement::text_search::{nuke_and_rebuild_with_recipes, SearchState, setup_search_state};
 
 const SESSION_VERSION: usize = 1;
 const SESSION_VERSION_KEY: &str = "session_version";
@@ -62,12 +61,10 @@ async fn main() {
         .write_style_or("MY_LOG_STYLE", "always");
 
     env_logger::init_from_env(env);
-    let searchState = setup_search_state().unwrap();
+    let search_state = setup_search_state().unwrap();
     let con = &mut database::establish_connection();
     let all_recipes = query_all_recipes(con);
-    let book_id_to_name: HashMap<i32, String> = HashMap::new();
-    let course_id_to_name: HashMap<i32, String> = HashMap::new();
-    add_recipes(&searchState, all_recipes, book_id_to_name, course_id_to_name);
+    nuke_and_rebuild_with_recipes(&search_state, all_recipes);
 
 
 
@@ -82,7 +79,7 @@ async fn main() {
         .route("/api/tried/:id", post(toggle_tried))
         .route("/recipe/detail/:id", get(recipe_detail).post(post_comment))
         .layer(session_layer)
-        .with_state(searchState)
+        .with_state(search_state)
         ;
     //        Router::new().route("/", get(|| async { "Hello, world!" }));
 
@@ -108,14 +105,9 @@ async fn main() {
 fn nuke_and_rebuild_index(search_state: &SearchState) {
     let con = &mut database::establish_connection();
     let all_recipes = query_all_recipes(con);
-    let book_id_to_name: HashMap<i32, String> = HashMap::new();
-    let course_id_to_name: HashMap<i32, String> = HashMap::new();
-    add_recipes(search_state, all_recipes, book_id_to_name, course_id_to_name);
+    nuke_and_rebuild_with_recipes(search_state, all_recipes);
 }
 
-fn get_all_recipesWithIngredients() {
-    let con = &mut database::establish_connection();
-}
 
 async fn index_handler(session: WritableSession) -> Html<String> {
     let con = &mut database::establish_connection();
@@ -256,7 +248,7 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
         title: cur_name,
         tried: tried_ids,
         logged_in: maybe_user_id.is_some(),
-        recipes_to_ingredients: recipes_to_ingredients,
+        recipes_to_ingredients,
         user_id: maybe_user_id,
         recipes_by_season_and_source,
         build_version,
@@ -327,10 +319,9 @@ async fn post_recipe(State(search_state): State<SearchState>, session: WritableS
     let book_id = form.book.map(|x| x.parse::<i32>()).and_then(|x| x.ok()).filter(|x| *x >= 0);
     let page = form.page.map(|x| x.parse::<i32>()).and_then(|x| x.ok());
     let recipe_url = form.recipe_url.map(|x| x.trim().to_string()).filter(|x| !x.is_empty());
-    let recipe_struct = InsertRecipeWithUrl { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id: book_id, page: page, recipe_url: recipe_url };
+    let recipe_struct = InsertRecipeWithUrl { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id, page, recipe_url };
     con.transaction::<_, Error, _>(|x| {
-        
-        diesel::insert_into(recipemanagement::schema::recipe::table)
+        diesel::insert_into(schema::recipe::table)
             .values(vec![recipe_struct])
             .execute(x)
             .unwrap();
@@ -341,7 +332,7 @@ async fn post_recipe(State(search_state): State<SearchState>, session: WritableS
             .recipe_id
             .unwrap();
 
-        if form.recipe_text.as_ref().filter(|x| !(x.trim()).is_empty()).is_some() {
+        if form.recipe_text.as_ref().filter(|x| !x.trim().is_empty()).is_some() {
             let edit_recipe_text = InsertRecipeText { recipe_id: cur_recipe_id, content: form.recipe_text.unwrap() };
             use recipemanagement::schema::recipe_text::dsl::*;
             diesel::replace_into(recipe_text)
@@ -357,12 +348,12 @@ async fn post_recipe(State(search_state): State<SearchState>, session: WritableS
             .map(|y| format!("{}", y.trim()))
             .filter(|x| !x.is_empty())
             .collect();
-        for val in ingredients_insert_vals.iter().filter(|x| !(x.trim().is_empty())) {
-            diesel::sql_query("INSERT OR IGNORE into  ingredient(name) values (?);")
+        for val in ingredients_insert_vals.iter().filter(|x| !x.trim().is_empty()) {
+            sql_query("INSERT OR IGNORE into  ingredient(name) values (?);")
                 .bind::<Text, _>(val.clone().to_lowercase())
                 .execute(x)
                 .unwrap();
-            let _res = diesel::sql_query("INSERT OR IGNORE INTO recipe_ingredient(recipe_id, ingredient_id)  SELECT ?, id FROM ingredient where lower(name)=?;")
+            let _res = sql_query("INSERT OR IGNORE INTO recipe_ingredient(recipe_id, ingredient_id)  SELECT ?, id FROM ingredient where lower(name)=?;")
                 .bind::<Integer, _>(cur_recipe_id)
                 .bind::<Text, _>(val.clone().to_lowercase())
                 .execute(x)
@@ -433,7 +424,7 @@ async fn post_book(session: WritableSession, Form(form): Form<PostBook>) -> Redi
 }
 
 
-async fn search_form(State(search_sate): State<SearchState>, session: WritableSession) -> Response {
+async fn search_form(session: WritableSession) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -849,7 +840,7 @@ fn query_for_recipe_detail<'a, 'b>(con: &mut LoggingConnection<SqliteConnection>
     use recipemanagement::schema::recipe::dsl::*;
 
     let query = recipe
-        .filter(recipemanagement::schema::recipe::recipe_id.eq(path))
+        .filter(schema::recipe::recipe_id.eq(path))
         .load::<FullRecipe>(con)
         .unwrap();
 
@@ -861,7 +852,7 @@ fn query_for_recipe_detail<'a, 'b>(con: &mut LoggingConnection<SqliteConnection>
 
     use recipemanagement::schema::book::dsl::*;
 
-    let disp_book: Option<String> = book.filter(recipemanagement::schema::book::dsl::book_id.eq(das_recipe.unwrap().book_id)).load::<QBook>(con).unwrap()
+    let disp_book: Option<String> = book.filter(schema::book::dsl::book_id.eq(das_recipe.unwrap().book_id)).load::<QBook>(con).unwrap()
         .first()
         .map(|x| x.book_name.as_ref().unwrap().clone());
 
@@ -889,8 +880,8 @@ WHERE recipe_id={}", path);
     use recipemanagement::schema::tried::dsl::*;
     let already_exists = select(
         exists(
-            tried.filter(recipemanagement::schema::tried::user_id.eq(cur_user_id))
-                .filter(recipemanagement::schema::tried::recipe_id.eq(path))
+            tried.filter(schema::tried::user_id.eq(cur_user_id))
+                .filter(schema::tried::recipe_id.eq(path))
         )
     ).get_result::<bool>(con).unwrap();
 
@@ -901,21 +892,21 @@ WHERE recipe_id={}", path);
         .unwrap();
     use recipemanagement::schema::recipe_text::dsl::*;
 
-    let recipe_text_disp = recipe_text.filter(recipemanagement::schema::recipe_text::recipe_id.eq(path))
+    let recipe_text_disp = recipe_text.filter(schema::recipe_text::recipe_id.eq(path))
         .load::<RecipeText>(con)
         .unwrap().first().map(|x| x.content.clone()).unwrap_or("".to_string());
 
 
     return Ok(Some(RecipeDetailQuery {
-        courses: courses,
+        courses,
         course: course_name,
         recipe: res_recipe.clone(),
-        ingredients: ingredients,
+        ingredients,
         title: res_recipe.recipe_name.clone().unwrap(),
         book_name: disp_book,
         season: ESeason::get_by_db_id(res_recipe.primary_season),
         tried: already_exists,
-        comments: comments,
+        comments,
         recipe_text: recipe_text_disp,
     }));
 }
