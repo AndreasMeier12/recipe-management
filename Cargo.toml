@@ -29,6 +29,7 @@ env_logger = "0.10.1"
 diesel_logger = "0.3.0"
 hex = "0.4.3"
 tantivy = "0.21.1"
+futures = "0.3.25"
 
 
 [dependencies.rand]

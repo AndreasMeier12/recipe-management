@@ -1742,6 +1742,7 @@ dependencies = [
  "diesel_logger",
  "dotenvy",
  "env_logger",
+ "futures",
  "hex",
  "itertools 0.12.0",
  "log",
