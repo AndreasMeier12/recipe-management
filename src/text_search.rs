@@ -249,6 +249,7 @@ mod tests {
             season3: Some(1),
             season4: Some(1),
             season5: None,
+            legacy: None,
         };
         let season_names = ESeason::to_map();
         let res = build_season_term(options, season_names);
