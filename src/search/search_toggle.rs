@@ -15,6 +15,16 @@ use crate::schema::course::dsl::course;
 use crate::text_search::{build_query, SCHEMA_BODY, SCHEMA_INGREDIENTS, SCHEMA_RECIPE_ID, SCHEMA_TITLE};
 
 pub fn search(search_args: &SearchPrefill, con: &mut LoggingConnection<SqliteConnection>, index: &Index, user_id: i32) -> Vec<FullRecipe> {
+    let sql_string: String = if search_args.legacy.filter(|x| x.clone() == 1).is_some() { build_search_query(&search_args, user_id) } else { build_tantivy_search_for_sql(search_args, con, index, user_id) };
+
+
+    let recipes = sql_query(sql_string)
+        .load::<FullRecipe>(con)
+        .ok().unwrap_or(vec![]);
+    return recipes;
+}
+
+fn build_tantivy_search_for_sql(search_args: &SearchPrefill, con: &mut LoggingConnection<SqliteConnection>, index: &Index, user_id: i32) -> String {
     let reader = index.reader().unwrap();
     let query_parser = QueryParser::for_index(&index, vec![index.schema().get_field(SCHEMA_TITLE).unwrap(), index.schema().get_field(SCHEMA_INGREDIENTS).unwrap(), index.schema().get_field(SCHEMA_BODY).unwrap()]);
 
@@ -44,16 +54,12 @@ pub fn search(search_args: &SearchPrefill, con: &mut LoggingConnection<SqliteCon
         .map(|x| x.unwrap())
         .collect();
     let recipe_ids: Vec<i64> = index_recipes.iter().map(|x| x.get_first(index.schema().get_field(SCHEMA_RECIPE_ID).expect("We might have a problem, recipes should always have ids")))
-        .map(|x| x.expect("Id should have value"))
+        .map(|x| x.expect("Id should have valu\
+        e"))
         .map(|x| x.as_i64().unwrap())
         .collect();
-    let sql_string: String = if search_args.legacy.filter(|x| x.clone() == 1).is_some() { build_search_query(&search_args, user_id) } else { build_index_search_query(recipe_ids) };
-
-
-    let recipes = sql_query(sql_string)
-        .load::<FullRecipe>(con)
-        .ok().unwrap_or(vec![]);
-    return recipes;
+    return build_index_search_query(recipe_ids);
 }
+
 
 
