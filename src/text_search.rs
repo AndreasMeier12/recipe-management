@@ -198,7 +198,7 @@ mod tests {
         let season_names = ESeason::to_map();
         let res = build_season_term(options, season_names);
         assert!(res.is_some());
-        assert_equal("+season in [summer autumn winter spring independent]".to_string().bytes(), res.unwrap().bytes());
+        assert_equal("+season: IN [/season/summer /season/autumn /season/winter /season/spring /season/independent]".to_string().bytes(), res.unwrap().bytes());
     }
 
     #[test]
@@ -220,6 +220,6 @@ mod tests {
         let season_names = ESeason::to_map();
         let res = build_season_term(options, season_names);
         assert!(res.is_some());
-        assert_equal("+season in [summer winter spring]".to_string().bytes(), res.unwrap().bytes());
+        assert_equal("+season: IN [/season/summer /season/winter /season/spring]".to_string().bytes(), res.unwrap().bytes());
     }
 }
