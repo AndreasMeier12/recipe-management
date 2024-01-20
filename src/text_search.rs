@@ -111,8 +111,8 @@ pub fn search() {}
 
 pub fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, season_names: HashMap<usize, ESeason>, course_names: HashMap<i32, String>) -> String {
     let mut parts: Vec<String> = vec![];
-    if options.name.is_some() {
-        parts.push(format!("+{}", options.clone().name.unwrap()))
+    if let Some(name_query) = options.clone().name {
+        name_query.split(" ").into_iter().for_each(|x| parts.push(format!("+{}", x)));
     }
 
     if let Some(i) = book_names.get(&options.clone().book.unwrap_or(-1)) {
