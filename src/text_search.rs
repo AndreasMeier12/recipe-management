@@ -109,20 +109,20 @@ pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<Re
 
 pub fn search() {}
 
-fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, season_names: HashMap<usize, ESeason>, course_names: HashMap<i32, String>) -> String {
+pub fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, season_names: HashMap<usize, ESeason>, course_names: HashMap<i32, String>) -> String {
     let mut parts: Vec<String> = vec![];
     if options.name.is_some() {
-        parts.push(format!("{}", options.clone().name.unwrap()))
+        parts.push(format!("+{}", options.clone().name.unwrap()))
     }
 
     if let Some(i) = book_names.get(&options.clone().book.unwrap_or(-1)) {
-        parts.push(format!("+book:{}", i))
+        parts.push(format!("+book:/book/{}", i))
     }
     if let Some(season_term) = build_season_term(options.clone(), season_names) {
         parts.push(season_term)
     }
     if let Some(i) = course_names.get(&options.course.unwrap_or(-1)) {
-        parts.push(format!("+course:{}", i))
+        parts.push(format!("+course:/course/{}", i))
     }
 
     return parts.join(" ");
@@ -140,7 +140,7 @@ fn build_season_term(options: SearchPrefill, season_names: HashMap<usize, ESeaso
         .map(|x| season_names.get(&(x)))
         .filter(|x| x.is_some())
         .map(|x| x.unwrap())
-        .map(|x| x.to_string())
+        .map(|x| format!("/season/{}", x.to_string()))
         .collect();
     if season_names.is_empty() {
         return None;

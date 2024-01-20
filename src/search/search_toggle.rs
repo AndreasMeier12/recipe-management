@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use diesel::{RunQueryDsl, sql_query, SqliteConnection};
 use diesel_logger::LoggingConnection;
 use tantivy::{Document, Index};
@@ -5,14 +7,35 @@ use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 
 use crate::args::SearchPrefill;
-use crate::models::FullRecipe;
+use crate::models::{FullRecipe, QBook, QCourse};
+use crate::parsetypes::ESeason;
 use crate::queries::{build_index_search_query, build_search_query};
-use crate::text_search::{SCHEMA_BODY, SCHEMA_INGREDIENTS, SCHEMA_RECIPE_ID, SCHEMA_TITLE};
+use crate::schema::book::dsl::book;
+use crate::schema::course::dsl::course;
+use crate::text_search::{build_query, SCHEMA_BODY, SCHEMA_INGREDIENTS, SCHEMA_RECIPE_ID, SCHEMA_TITLE};
 
 pub fn search(search_args: &SearchPrefill, con: &mut LoggingConnection<SqliteConnection>, index: &Index, user_id: i32) -> Vec<FullRecipe> {
     let reader = index.reader().unwrap();
     let query_parser = QueryParser::for_index(&index, vec![index.schema().get_field(SCHEMA_TITLE).unwrap(), index.schema().get_field(SCHEMA_INGREDIENTS).unwrap(), index.schema().get_field(SCHEMA_BODY).unwrap()]);
-    let query = query_parser.parse_query(&*format!("{}", search_args.clone().name.unwrap_or("".to_string()))).unwrap();
+
+    use crate::schema::book::dsl::*;
+    let books: HashMap<i32, String> = book.load::<QBook>(con).unwrap()
+        .iter()
+        .map(|x| (x.clone().book_id.unwrap(), x.clone().book_name.unwrap()))
+        .collect();
+
+
+    let seasons: HashMap<usize, ESeason> = ESeason::to_map();
+    use crate::schema::course::dsl::*;
+
+    let course_names: HashMap<i32, String> = course.load::<QCourse>(con).unwrap()
+        .iter()
+        .map(|x| (x.clone().course_id.unwrap(), x.course_name.clone().unwrap()))
+        .collect();
+
+
+    let query_string = build_query(search_args.clone(), books, seasons, course_names);
+    let query = query_parser.parse_query(query_string.as_str()).unwrap();
     let searcher = reader.searcher();
     let results = searcher.search(&query, &TopDocs::with_limit(1024));
     let index_recipes: Vec<Document> = results.unwrap().iter().map(|x| searcher.doc(x.1))
@@ -23,10 +46,10 @@ pub fn search(search_args: &SearchPrefill, con: &mut LoggingConnection<SqliteCon
         .map(|x| x.expect("Id should have value"))
         .map(|x| x.as_i64().unwrap())
         .collect();
-    let query_string: String = if search_args.legacy.filter(|x| x.clone() == 1).is_some() { build_search_query(&search_args, user_id) } else { build_index_search_query(recipe_ids) };
+    let sql_string: String = if search_args.legacy.filter(|x| x.clone() == 1).is_some() { build_search_query(&search_args, user_id) } else { build_index_search_query(recipe_ids) };
 
 
-    let recipes = sql_query(query_string)
+    let recipes = sql_query(sql_string)
         .load::<FullRecipe>(con)
         .ok().unwrap_or(vec![]);
     return recipes;
