@@ -147,7 +147,7 @@ fn build_season_term(options: SearchPrefill, season_names: HashMap<usize, ESeaso
     }
 
     let inner: String = season_names.into_iter().join(" ");
-    return Some(format!("+season in [{}]", inner));
+    return Some(format!("+season: IN [{}]", inner));
 }
 
 

@@ -35,6 +35,7 @@ pub fn search(search_args: &SearchPrefill, con: &mut LoggingConnection<SqliteCon
 
 
     let query_string = build_query(search_args.clone(), books, seasons, course_names);
+    let parse_res = query_parser.parse_query(query_string.as_str());
     let query = query_parser.parse_query(query_string.as_str()).unwrap();
     let searcher = reader.searcher();
     let results = searcher.search(&query, &TopDocs::with_limit(1024));
