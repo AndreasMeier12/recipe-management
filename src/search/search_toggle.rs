@@ -58,7 +58,7 @@ fn build_tantivy_search_for_sql(search_args: &SearchPrefill, con: &mut LoggingCo
         e"))
         .map(|x| x.as_i64().unwrap())
         .collect();
-    return build_index_search_query(recipe_ids);
+    return build_index_search_query(recipe_ids, search_args, user_id);
 }
 
 

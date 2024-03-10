@@ -73,13 +73,20 @@ fn handle_seasons( params: &SearchPrefill) -> Option<String>{
     }
 
     return Some(format!("primary_season IN ({})", search_seasons.join(",")));
-
-
-
 }
 
-pub fn build_index_search_query(ids: Vec<i64>) -> String {
+pub fn build_index_search_query(ids: Vec<i64>, search_args: &SearchPrefill, user_id: i32) -> String {
     let id_string = ids.iter().map(|x| x.to_string()).join(",");
+    if search_args.tried == 1 {
+        return format!("SELECT recipe.* FROM recipe INNER JOIN tried ON recipe.recipe_id = tried.recipe_id
+WHERE tried.recipe_id IN ({}) AND user_id={};", id_string, user_id);
+    }
+    if search_args.tried == 2 {
+        let query = format!("SELECT * FROM recipe WHERE recipe_id NOT IN  (SELECT recipe_id FROM tried WHERE tried.recipe_id IN ({}) AND user_id={}
+) AND recipe_id IN ({});", id_string, user_id, id_string);
+        return query;
+    }
+
     return format!("SELECT * FROM recipe WHERE recipe_id IN ({})", id_string);
 }
 
