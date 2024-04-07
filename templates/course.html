@@ -14,9 +14,13 @@
                     () => {
                         if (btn.classList.contains("tried-true")) {
                             btn.classList.remove("tried-true")
+                            btn.classList.remove("btn-info")
+                            btn.classList.add("btn-primary")
                             btn.innerHTML = "tried?"
                         } else {
                             btn.classList.add("tried-true")
+                            btn.classList.remove("btn-primary")
+                            btn.classList.add("btn-info")
                             btn.innerHTML = "misclicked?"
                         }
                     }
@@ -56,7 +60,8 @@
             }} </a>
             - {% if recipe.page.is_some() %} {{ recipe.page.unwrap() }} {% endif
             %} {% if logged_in %}
-            <button class="js-btn-tried btn btn-primary {% if has_tried %} tried-true {% endif %} " data-id="{{cur_id}}"
+            <button class="js-btn-tried btn {% if has_tried %}  tried-true  btn-info {% else %}   btn btn-primary {% endif %} "
+                    data-id="{{ id_ref }}"
                     id="js-btn-tried-{{cur_id}}"> {% if has_tried %} misclicked? {% else%} tried? {% endif %}
             </button>
             {% endif %}
