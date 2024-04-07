@@ -61,7 +61,7 @@
     </script>
 </head>
 
-    <nav class="navbar navbar-expand-lg justify-content-center">
+<nav class="navbar navbar-expand-lg justify-content-center {% if debug_compilation %} border border-warning {% endif %}">
     <div class="navbar-nav ">
             {% for course in courses %}
             <a class="nav-item nav-link" href="/course/{{course.course_name.as_ref().unwrap()}}">
@@ -86,7 +86,7 @@
 </header>
 
 
-<div class="container" id="content">
+    <div class="container {% if debug_compilation %} border border-warning {% endif %}" id="content">
     {% block content %}{% endblock %}
     Version: {{build_version}}
 </div>

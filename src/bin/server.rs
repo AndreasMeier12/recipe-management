@@ -123,6 +123,7 @@ async fn index_handler(session: WritableSession) -> Html<String> {
         title: "Recipes",
         user_id: maybe_user_id,
         build_version,
+        debug_compilation: cfg!(debug_assertions),
     }; // instantiate your struct
     let a = hello.get();
 
@@ -253,7 +254,8 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
         recipes_by_season_and_source,
         build_version,
         commented,
-        texted
+        texted,
+        debug_compilation: cfg!(debug_assertions),
     }.get();
 
     return Html(das_content);
@@ -288,7 +290,8 @@ async fn recipe_form(session: WritableSession, prefill: Query<RecipePrefill>) ->
         title: "Add Recipe",
         newest: newest_recipe,
         user_id: maybe_user_id,
-        build_version
+        build_version,
+        debug_compilation: cfg!(debug_assertions),
     }
         .get()
     )
@@ -393,6 +396,7 @@ async fn book_form(session: WritableSession) -> Response {
         title: "Add book",
         user_id: maybe_user_id,
         build_version,
+        debug_compilation: cfg!(debug_assertions),
     }.get()).into_response();
 }
 
@@ -466,7 +470,8 @@ async fn search_form(session: WritableSession) -> Response {
         id_to_book_name,
         commented,
         texted,
-        tried_ids
+        tried_ids,
+        debug_compilation: cfg!(debug_assertions),
     }.get()).into_response();
 }
 
@@ -547,7 +552,8 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
         id_to_book_name,
         commented,
         texted,
-        tried_ids
+        tried_ids,
+        debug_compilation: cfg!(debug_assertions),
 
     }
         .get()).into_response();
@@ -565,6 +571,7 @@ async fn login_page(session: WritableSession) -> Html<String> {
         title: "Login",
         user_id: maybe_user_id,
         build_version,
+        debug_compilation: cfg!(debug_assertions),
     }.get());
 }
 
@@ -652,6 +659,7 @@ WHERE recipe_id={}", path);
         recipe_text: recipe_text_disp,
         user_id: maybe_user_id,
         build_version,
+        debug_compilation: cfg!(debug_assertions),
     }.get())
         .into_response();
 }
@@ -950,6 +958,7 @@ async fn recipe_detail(session: WritableSession, Path(path): Path<i32>) -> Respo
             recipe_text: x.recipe_text,
             user_id: maybe_user_id,
             build_version,
+            debug_compilation: cfg!(debug_assertions),
         }.get())
         .unwrap_or("404".to_string())
     ).into_response();

@@ -19,6 +19,7 @@ pub struct HelloTemplate<'a> {
     pub title: &'a str,
     pub user_id: Option<i32>,
     pub build_version: &'a str,
+    pub debug_compilation: bool,
     // in your template
 }
 
@@ -46,6 +47,7 @@ pub struct CourseTemplate<'a> {
     pub build_version: &'a str,
     pub commented: HashSet<i32>,
     pub texted: HashSet<i32>,
+    pub debug_compilation: bool,
 
 
     // in your template
@@ -66,6 +68,7 @@ pub struct BookForm<'a> {
     pub title: &'a str,
     pub user_id: Option<i32>,
     pub build_version: &'a str,
+    pub debug_compilation: bool,
 
     // in your template
 }
@@ -88,6 +91,8 @@ pub struct RecipeForm<'a> {
     pub newest: Option<FullRecipe>,
     pub user_id: Option<i32>,
     pub build_version: &'a str,
+    pub debug_compilation: bool,
+
 }
 
 
@@ -114,7 +119,9 @@ pub struct SearchForm<'a> {
     pub id_to_book_name: HashMap<i32, String>,
     pub commented: HashSet<i32>,
     pub texted: HashSet<i32>,
-    pub tried_ids: HashSet<i32>
+    pub tried_ids: HashSet<i32>,
+    pub debug_compilation: bool,
+
     // in your template
 }
 
@@ -131,6 +138,7 @@ pub struct LoginPage<'a> {
     pub title: &'a str,
     pub user_id: Option<i32>,
     pub build_version: &'a str,
+    pub debug_compilation: bool,
 
     // in your template
 }
@@ -155,6 +163,8 @@ pub struct RecipeEditForm<'a> {
     pub recipe_text: String,
     pub user_id: Option<i32>,
     pub build_version: &'a str,
+    pub debug_compilation: bool,
+
 }
 
 
@@ -185,6 +195,7 @@ pub struct RecipeDetail<'a> {
     pub recipe_text: String,
     pub user_id: Option<i32>,
     pub build_version: &'a str,
+    pub debug_compilation: bool,
 
 }
 
