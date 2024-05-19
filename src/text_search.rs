@@ -4,7 +4,7 @@ use std::sync::Arc;
 use itertools::Itertools;
 use tantivy::{Document, Index, IndexWriter};
 use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, STORED, TextFieldIndexing, TextOptions};
-use tantivy::tokenizer::{AsciiFoldingFilter, LowerCaser, SimpleTokenizer, TextAnalyzer};
+use tantivy::tokenizer::{AsciiFoldingFilter, Language, LowerCaser, SimpleTokenizer, Stemmer, TextAnalyzer};
 use tokio::sync::Mutex;
 
 use crate::args::SearchPrefill;
@@ -25,6 +25,7 @@ pub fn setup_search_state() -> tantivy::Result<SearchState> {
     let tokenizer = TextAnalyzer::builder(SimpleTokenizer::default())
         .filter(LowerCaser)
         .filter(AsciiFoldingFilter)
+        .filter(Stemmer::new(Language::English))
         .build();
     index.tokenizers()
         .register("ascii", tokenizer);
