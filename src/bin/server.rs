@@ -271,7 +271,7 @@ async fn recipe_form(session: WritableSession, prefill: Query<RecipePrefill>) ->
 
     use recipemanagement::schema::book::dsl::*;
 
-    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap().into_iter().sorted_by(|x, y| x.book_name.as_ref().unwrap().cmp(y.book_name.as_ref().unwrap())).collect();
     use recipemanagement::schema::course::dsl::*;
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
@@ -629,7 +629,7 @@ async fn edit_recipe_form(session: WritableSession, Path(path): Path<i32>) -> Re
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     use recipemanagement::schema::book::dsl::*;
 
-    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap().into_iter().sorted_by(|x, y| x.book_name.as_ref().unwrap().cmp(y.book_name.as_ref().unwrap())).collect();
 
 
     let ingredient_query_sql = format!("
