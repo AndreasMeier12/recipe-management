@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 use crate::args::SearchPrefill;
 use crate::parsetypes::ESeason;
 use crate::queries::RecipeQueryResult;
+use crate::search::synonym_tokenizer::SynonymFilter;
 
 #[derive(Clone)]
 pub struct SearchState {
@@ -26,6 +27,7 @@ pub fn setup_search_state() -> tantivy::Result<SearchState> {
         .filter(LowerCaser)
         .filter(AsciiFoldingFilter)
         .filter(Stemmer::new(Language::English))
+        .filter(SynonymFilter)
         .build();
     index.tokenizers()
         .register("ascii", tokenizer);
