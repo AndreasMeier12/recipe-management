@@ -23,7 +23,8 @@ fn get_default_args() -> HashMap<String, String> {
             ("ladyfingers".to_string(), "savoiardi".to_string()),
             ("verjus".to_string(), "verjuice".to_string()),
             ("pumpkin".to_string(), "squash".to_string()),
-            ("kaffir".to_string(), "makrut".to_string())
+            ("kaffir".to_string(), "makrut".to_string()),
+            ("gherkin".to_string(), "cornichon".to_string()),
         ]
     );
     return res;
