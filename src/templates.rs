@@ -121,6 +121,7 @@ pub struct SearchForm<'a> {
     pub texted: HashSet<i32>,
     pub tried_ids: HashSet<i32>,
     pub debug_compilation: bool,
+    pub tried_selection: i32,
 
     // in your template
 }

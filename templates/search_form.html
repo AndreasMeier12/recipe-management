@@ -71,10 +71,12 @@
         {% endfor %}
     </select> <br>
     <label for="tried">Tried</label>
+    {% let tried_id_selection = (prefill.tried.clone().unwrap_or(0).clone()) %}
+
     <select id="tried" name="tried" required class="form-select">
-        <option value="0" {% if prefill.tried == 0 %}selected{% endif %}>-</option>
-        <option value="1" {% if prefill.tried == 1 %}selected{% endif %}>Yes</option>
-        <option value="2" {% if prefill.tried == 2 %}selected{% endif %}>No</option>
+        <option value="0" {% if tried_selection== 0 %}selected{% endif %}>-</option>
+        <option value="1" {% if tried_selection== 1 %}selected{% endif %}>Yes</option>
+        <option value="2" {% if tried_selection== 2 %}selected{% endif %}>No</option>
     </select> <br>
     <div class="form-check form-check-inline">
         <input class="form-check-input" type="checkbox" id="legacy" name="legacy" value="1">

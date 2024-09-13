@@ -2,34 +2,33 @@
 extern crate log;
 
 
-use std::collections::{HashMap, HashSet};
-use std::collections::hash_map::RandomState;
-use std::net::SocketAddr;
-
 use argon2::{
-    Argon2,
     password_hash::{
         PasswordHash, PasswordVerifier,
     },
+    Argon2,
 };
-use axum::{Form, Router, routing::{get, post}};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Redirect, Response};
 use axum::response::Html;
-use axum_sessions::{async_session::CookieStore, extractors::WritableSession, SessionLayer};
+use axum::response::{IntoResponse, Redirect, Response};
+use axum::{routing::{get, post}, Form, Router};
 use axum_sessions::async_session::log::trace;
-use diesel::{select, sql_query};
+use axum_sessions::{async_session::CookieStore, extractors::WritableSession, SessionLayer};
 use diesel::dsl::{exists, max};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::{Integer, Text};
+use diesel::{select, sql_query};
 use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
 use serde::Deserialize;
+use std::collections::hash_map::RandomState;
+use std::collections::{HashMap, HashSet};
+use std::net::SocketAddr;
+use std::ops::Deref;
 
-use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
@@ -39,7 +38,8 @@ use recipemanagement::search::search_toggle;
 use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
-use recipemanagement::text_search::{nuke_and_rebuild_with_recipes, SearchState, setup_search_state};
+use recipemanagement::text_search::{nuke_and_rebuild_with_recipes, setup_search_state, SearchState};
+use recipemanagement::*;
 
 const SESSION_VERSION: usize = 1;
 const SESSION_VERSION_KEY: &str = "session_version";
@@ -428,7 +428,7 @@ async fn post_book(session: WritableSession, Form(form): Form<PostBook>) -> Redi
 }
 
 
-async fn search_form(session: WritableSession) -> Response {
+async fn search_form(search_state: State<SearchState>, session: WritableSession, prefill: Query<SearchPrefill>) -> Response {
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
         return Redirect::to("/login").into_response();
@@ -454,6 +454,8 @@ async fn search_form(session: WritableSession) -> Response {
     use recipemanagement::schema::recipe_comment::dsl::*;
     let commented: HashSet<i32> = recipe_comment.load::<Comment>(con).unwrap().iter().map(|x| x.recipe_id).collect();
     let tried_ids: HashSet<i32> = query_tried(maybe_user_id.unwrap(), con);
+    let recipes = search_toggle::search(&prefill.0, con, &search_state.index, maybe_user_id.unwrap());
+
 
 
 
@@ -461,17 +463,18 @@ async fn search_form(session: WritableSession) -> Response {
         seasons: ESeason::get_seasons(),
         books: &books,
         courses: course_refs,
-        recipes: None,
+        recipes: Some(recipes).filter(|x| !x.is_empty()),
         title: "Search",
         recipes_to_ingredients: Default::default(),
         user_id: maybe_user_id,
         build_version: "build_version",
-        prefill: SearchPrefill::default(),
+        prefill: prefill.clone().0,
         id_to_book_name,
         commented,
         texted,
         tried_ids,
         debug_compilation: cfg!(debug_assertions),
+        tried_selection: prefill.tried.unwrap_or(0),
     }.get()).into_response();
 }
 
@@ -485,7 +488,7 @@ fn query_tried(query_user_id: i32, con: &mut LoggingConnection<SqliteConnection>
     return tried_ids;
 }
 
-async fn search_result(State(search_state): State<SearchState>, session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
+async fn search_result(session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
 
     let maybe_user_id = get_user_id(session);
     if maybe_user_id.is_none() {
@@ -508,7 +511,6 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
     
 
     let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
-    let recipes = search_toggle::search(&form, con, &search_state.index, maybe_user_id.unwrap());
 
     use recipemanagement::schema::ingredient::dsl::*;
     let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
@@ -527,7 +529,7 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
         .into_group_map();
 
     let build_version = env!("VERGEN_GIT_SHA");
-        let id_to_book_name = books.iter()
+    let id_to_book_name: HashMap<i32, String> = books.iter()
         .map(|x| (x.book_id.clone().unwrap(), x.book_name.clone().unwrap()))
         .collect();
     use recipemanagement::schema::recipe_text::dsl::*;
@@ -538,25 +540,44 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
     let commented: HashSet<i32> = recipe_comment.load::<Comment>(con).unwrap().iter().map(|x| x.recipe_id).collect();
     let tried_ids: HashSet<i32> = query_tried(maybe_user_id.expect("user should be logged in alrady"), con);
 
-
-    return Html(SearchForm {
-        seasons: ESeason::get_seasons(),
-        books: &books,
-        courses: course_refs,
-        recipes: Some(recipes),
-        title: "Search",
-        recipes_to_ingredients,
-        user_id: maybe_user_id,
-        build_version,
-        prefill: form,
-        id_to_book_name,
-        commented,
-        texted,
-        tried_ids,
-        debug_compilation: cfg!(debug_assertions),
-
+    let mut query_params: Vec<String> = vec![];
+    if let Some(i) = form.name {
+        query_params.push(format!("name={}", i));
     }
-        .get()).into_response();
+    if let Some(i) = form.book {
+        query_params.push(format!("book={}", i));
+    }
+    if let Some(i) = form.season1 {
+        query_params.push(format!("name={}", i));
+    }
+    if let Some(i) = form.course {
+        query_params.push(format!("course={}", i));
+    }
+
+
+    if let Some(i) = form.season1 {
+        query_params.push(format!("season1={}", i));
+    }
+    if let Some(i) = form.season2 {
+        query_params.push(format!("season2={}", i));
+    }
+    if let Some(i) = form.season3 {
+        query_params.push(format!("season3={}", i));
+    }
+    if let Some(i) = form.season4 {
+        query_params.push(format!("season4={}", i));
+    }
+    if let Some(i) = form.season5 {
+        query_params.push(format!("season5={}", i));
+    }
+
+    query_params.push(format!("tried={}", form.tried.unwrap_or(0)));
+    if let Some(i) = form.legacy {
+        query_params.push(format!("legacy={}", i));
+    }
+
+
+    return Redirect::to(format!("/search?{}", query_params.join("&")).as_str()).into_response();
 }
 
 async fn login_page(session: WritableSession) -> Html<String> {

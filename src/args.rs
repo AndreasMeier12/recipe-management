@@ -14,7 +14,7 @@ pub struct SearchPrefill {
     pub season: Option<i32>,
     pub course: Option<i32>,
     pub book: Option<i32>,
-    pub tried: i32,
+    pub tried: Option<i32>,
     pub season1: Option<i32>,
     pub season2: Option<i32>,
     pub season3: Option<i32>,

@@ -24,10 +24,10 @@ pub fn build_search_query(params: &SearchPrefill, user_id: i32) -> String {
         simple_criteria.push(format!("course_id={}", params.course.unwrap()))
     }
 
-    if params.tried == 1 {
+    if params.tried.filter(|x| x.clone() == 1).is_some() {
         simple_criteria.push(format!("SELECT * FROM recipe WHERE EXISTS(SELECT * FROM tried WHERE user_id={} and recipe.recipe_id=tried.recipe_id)", user_id));
     }
-    if params.tried == 2 {
+    if params.tried.clone().filter(|x| x.clone() == 2).is_some() {
         simple_criteria.push(format!("SELECT * FROM recipe WHERE NOT EXISTS(SELECT * FROM tried WHERE user_id={} and recipe.recipe_id=tried.recipe_id)", user_id));
     }
 
@@ -77,11 +77,11 @@ fn handle_seasons( params: &SearchPrefill) -> Option<String>{
 
 pub fn build_index_search_query(ids: Vec<i64>, search_args: &SearchPrefill, user_id: i32) -> String {
     let id_string = ids.iter().map(|x| x.to_string()).join(",");
-    if search_args.tried == 1 {
+    if search_args.tried.filter(|x| x.clone() == 1).is_some() {
         return format!("SELECT recipe.* FROM recipe INNER JOIN tried ON recipe.recipe_id = tried.recipe_id
 WHERE tried.recipe_id IN ({}) AND user_id={};", id_string, user_id);
     }
-    if search_args.tried == 2 {
+    if search_args.tried.filter(|x| x.clone() == 2).is_some() {
         let query = format!("SELECT * FROM recipe WHERE recipe_id NOT IN  (SELECT recipe_id FROM tried WHERE tried.recipe_id IN ({}) AND user_id={}
 ) AND recipe_id IN ({});", id_string, user_id, id_string);
         return query;
