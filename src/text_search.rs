@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tantivy::collector::TopDocs;
-use tantivy::query::{BooleanQuery, Occur, Query, QueryParser, TermQuery};
+use tantivy::collector::{FacetCollector, TopDocs};
+use tantivy::query::{AllQuery, BooleanQuery, Occur, Query, QueryParser, TermQuery};
 use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED};
 use tantivy::tokenizer::{AsciiFoldingFilter, Language, LowerCaser, SimpleTokenizer, Stemmer, TextAnalyzer};
 use tantivy::{Document, Index, IndexWriter, Term};
@@ -45,7 +45,7 @@ pub const SCHEMA_BODY: &'static str = "body";
 
 const SCHEMA_URL: &'static str = "url";
 
-pub const SCHEMA_BOOK: &'static str = "book";
+pub const SCHEMA_BOOK: &'static str = "cookbook";
 
 const SCHEMA_SEASON: &'static str = "season";
 
@@ -97,7 +97,7 @@ pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<Re
         doc.add_facet(schema.get_field(SCHEMA_COURSE).unwrap(), Facet::from(format!("/course/{}", enriched_recipe.course_name).as_str()));
 
         if let Some(i) = enriched_recipe.book_name {
-            let string = format!("/book/{}", i.as_str());
+            let string = format!("/{}/{}", SCHEMA_BOOK, i.as_str());
             println!("Adding facet {}", string);
             doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(string.as_str()));
         }
@@ -111,6 +111,13 @@ pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<Re
     }
     index_writer.commit().expect("Commit should work");
     search_state.index.reader().unwrap().reload();
+
+    let searcher = search_state.index.reader().unwrap().searcher();
+
+    let mut facet_collector = FacetCollector::for_field(SCHEMA_BOOK);
+    facet_collector.add_facet(format!("/{}", SCHEMA_BOOK).as_str());
+    let facet_counts = searcher.search(&AllQuery, &facet_collector);
+    let facets: Vec<_> = facet_counts.unwrap().get(format!("/{}", SCHEMA_BOOK).as_str()).collect();
 
 
     let book_field = search_state.index.schema().get_field(SCHEMA_COURSE).unwrap();
@@ -141,7 +148,7 @@ pub fn build_query(index: &Index, options: SearchPrefill, book_names: HashMap<i3
     ;
     if let Some(i) = book_names.get(&options.clone().book.unwrap_or(-1)) {
         let book = index.schema().get_field(SCHEMA_BOOK).expect("Book facet should exist, check startup or writing/renewal of index");
-        let facet = Facet::from(format!("/book/{}", i).as_str());
+        let facet = Facet::from(format!("/{SCHEMA_BOOK}/{}", i).as_str());
         let facet_term = Term::from_facet(book, &facet);
         let facet_query = TermQuery::new(facet_term, IndexRecordOption::Basic);
         subqueries.push((Occur::Must, Box::new(facet_query)));
