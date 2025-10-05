@@ -177,7 +177,7 @@ fn map_recipe_and_ingredient(x: &FullRecipe, recipes_to_ingredients: &HashMap<i3
         recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).unwrap().clone()
     };
     let course_name = course_id_to_name.get(&x.course_id).unwrap();
-    let book_name = book_id_to_name.get(&x.recipe_id.unwrap()).map(|x| x.clone());
+    let book_name = x.book_id.map(|y| book_id_to_name.get(&y)).flatten().map(|x| x.clone());
     let text = ids_to_texts.get(&x.recipe_id.unwrap());
 
 
