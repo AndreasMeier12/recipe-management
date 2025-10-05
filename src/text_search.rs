@@ -1,10 +1,11 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::sync::Arc;
-
-use itertools::Itertools;
-use tantivy::{Document, Index, IndexWriter};
-use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, STORED, TextFieldIndexing, TextOptions};
+use tantivy::collector::TopDocs;
+use tantivy::query::{BooleanQuery, Occur, Query, QueryParser, TermQuery};
+use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED};
 use tantivy::tokenizer::{AsciiFoldingFilter, Language, LowerCaser, SimpleTokenizer, Stemmer, TextAnalyzer};
+use tantivy::{Document, Index, IndexWriter, Term};
 use tokio::sync::Mutex;
 
 use crate::args::SearchPrefill;
@@ -44,11 +45,11 @@ pub const SCHEMA_BODY: &'static str = "body";
 
 const SCHEMA_URL: &'static str = "url";
 
-const SCHEMA_BOOK: &'static str = "book";
+pub const SCHEMA_BOOK: &'static str = "book";
 
 const SCHEMA_SEASON: &'static str = "season";
 
-const SCHEMA_COURSE: &'static str = "course";
+pub const SCHEMA_COURSE: &'static str = "course";
 
 pub const SCHEMA_RECIPE_ID: &'static str = "recipe_id";
 
@@ -68,7 +69,7 @@ fn build_schema() -> Schema {
     schema_builder.add_text_field(SCHEMA_BODY, text_options.clone());
     schema_builder.add_text_field(SCHEMA_INGREDIENTS, text_options.clone());
     schema_builder.add_text_field(SCHEMA_URL, text_options.clone());
-    schema_builder.add_text_field(SCHEMA_RECIPE_ID, STORED);
+    schema_builder.add_u64_field(SCHEMA_RECIPE_ID, STORED);
     schema_builder.add_facet_field(SCHEMA_BOOK, FacetOptions::default());
     schema_builder.add_facet_field(SCHEMA_SEASON, FacetOptions::default());
     schema_builder.add_facet_field(SCHEMA_COURSE, FacetOptions::default());
@@ -96,7 +97,9 @@ pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<Re
         doc.add_facet(schema.get_field(SCHEMA_COURSE).unwrap(), Facet::from(format!("/course/{}", enriched_recipe.course_name).as_str()));
 
         if let Some(i) = enriched_recipe.book_name {
-            doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(format!("/book/{}", i.as_str()).as_str()));
+            let string = format!("/book/{}", i.as_str());
+            println!("Adding facet {}", string);
+            doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(string.as_str()));
         }
         if let Some(i) = enriched_recipe.recipe_text {
             doc.add_text(schema.get_field(SCHEMA_BODY).unwrap(), i);
@@ -107,28 +110,58 @@ pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<Re
         index_writer.add_document(doc).expect("Writing should still work");
     }
     index_writer.commit().expect("Commit should work");
+    search_state.index.reader().unwrap().reload();
+
+
+    let book_field = search_state.index.schema().get_field(SCHEMA_COURSE).unwrap();
+    let query_parser = tantivy::query::QueryParser::for_index(&search_state.index, vec![book_field]);
+    let query = query_parser.parse_query("+course:/course/dessert").unwrap();
+    let asdf = search_state.index.reader().unwrap().searcher().search(&query, &TopDocs::with_limit(10));
+    let vec1 = asdf.unwrap();
+    println!("{:?}", vec1)
+
 
 }
 
 pub fn search() {}
 
-pub fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, season_names: HashMap<usize, ESeason>, course_names: HashMap<i32, String>) -> String {
+pub fn build_query(index: &Index, options: SearchPrefill, book_names: HashMap<i32, String>, season_names: HashMap<usize, ESeason>, course_names: HashMap<i32, String>) -> BooleanQuery {
     let mut parts: Vec<String> = vec![];
+    let mut subqueries: Vec<(Occur, Box<dyn Query>)> = Vec::new();
+
+
     if let Some(name_query) = options.clone().name.filter(|x| !x.trim().is_empty()) {
         name_query.split(" ").into_iter().for_each(|x| parts.push(format!("+{}", x)));
     }
+    let parser = QueryParser::for_index(&index, vec![index.schema().get_field(SCHEMA_TITLE).unwrap(), index.schema().get_field(SCHEMA_INGREDIENTS).unwrap(), index.schema().get_field(SCHEMA_BODY).unwrap()]);
+    let parse_result = parser.parse_query(&parts.join(" "));
+    let term = parse_result.expect("Parsing query should work");
+    subqueries.push((Occur::Must, term));
 
+    ;
     if let Some(i) = book_names.get(&options.clone().book.unwrap_or(-1)) {
-        parts.push(format!("+book:/book/{}", i))
+        let book = index.schema().get_field(SCHEMA_BOOK).expect("Book facet should exist, check startup or writing/renewal of index");
+        let facet = Facet::from(format!("/book/{}", i).as_str());
+        let facet_term = Term::from_facet(book, &facet);
+        let facet_query = TermQuery::new(facet_term, IndexRecordOption::Basic);
+        subqueries.push((Occur::Must, Box::new(facet_query)));
     }
     if let Some(season_term) = build_season_term(options.clone(), season_names) {
-        parts.push(season_term)
+        let book = index.schema().get_field(SCHEMA_SEASON).expect("Season facet should exist, check startup or writing/renewal of index");
+        let facet = Facet::from(format!("/season/{}", season_term).as_str());
+        let facet_term = Term::from_facet(book, &facet);
+        let facet_query = TermQuery::new(facet_term, IndexRecordOption::Basic);
+        subqueries.push((Occur::Must, Box::new(facet_query)));
     }
     if let Some(i) = course_names.get(&options.course.unwrap_or(-1)) {
-        parts.push(format!("+course:/course/{}", i))
+        let book = index.schema().get_field(SCHEMA_SEASON).expect("Season facet should exist, check startup or writing/renewal of index");
+        let facet = Facet::from(format!("/course/{}", i).as_str());
+        let facet_term = Term::from_facet(book, &facet);
+        let facet_query = TermQuery::new(facet_term, IndexRecordOption::Basic);
+        subqueries.push((Occur::Must, Box::new(facet_query)));
     }
-
-    return parts.join(" ");
+    let boolean_query = BooleanQuery::new(subqueries);
+    return boolean_query;
 
 }
 
