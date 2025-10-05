@@ -96,9 +96,9 @@ pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<Re
         doc.add_facet(schema.get_field(SCHEMA_COURSE).unwrap(), Facet::from(format!("/course/{}", enriched_recipe.course_name).as_str()));
 
 
-        let name_string: String = enriched_recipe.book_name.unwrap_or("unknown".to_string());
-        doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(format!("/book/{}", name_string.as_str()).as_str()));
-        println!("{}", name_string);
+        if let Some(name_string) = enriched_recipe.book_name {
+            doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(format!("/book/{}", name_string.as_str()).as_str()));
+        }
 
         if let Some(i) = enriched_recipe.recipe_text {
             doc.add_text(schema.get_field(SCHEMA_BODY).unwrap(), i);
