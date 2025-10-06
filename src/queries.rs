@@ -59,7 +59,7 @@ WHERE recipe_comment.content LIKE '%{}%')", name_for_real, name_for_real, name_f
         return asdf;
     }
     let res = vec![asdf, simple_criteria.iter().join("AND")].iter().join(" WHERE ");
-    return res;
+    return "SELECT * FROM recipe WHERE 1=2;".to_string();
 }
 
 fn handle_seasons( params: &SearchPrefill) -> Option<String>{
