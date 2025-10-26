@@ -30,6 +30,7 @@ diesel_logger = "0.3.0"
 hex = "0.4.3"
 tantivy = "0.21.1"
 futures = "0.3.25"
+memoize = "0.5.1"
 
 
 [dependencies.rand]
