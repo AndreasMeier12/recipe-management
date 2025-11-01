@@ -2,34 +2,33 @@
 extern crate log;
 
 
-use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::RandomState;
+use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 
 use argon2::{
-    Argon2,
     password_hash::{
         PasswordHash, PasswordVerifier,
     },
+    Argon2,
 };
-use axum::{Form, Router, routing::{get, post}};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Redirect, Response};
 use axum::response::Html;
-use axum_sessions::{async_session::CookieStore, extractors::WritableSession, SessionLayer};
+use axum::response::{IntoResponse, Redirect, Response};
+use axum::{routing::{get, post}, Form, Router};
 use axum_sessions::async_session::log::trace;
-use diesel::{select, sql_query};
+use axum_sessions::{async_session::CookieStore, extractors::WritableSession, SessionLayer};
 use diesel::dsl::{exists, max};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::{Integer, Text};
+use diesel::{select, sql_query};
 use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
 use serde::Deserialize;
 
-use recipemanagement::*;
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
@@ -39,7 +38,8 @@ use recipemanagement::search::search_toggle;
 use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
-use recipemanagement::text_search::{nuke_and_rebuild_with_recipes, SearchState, setup_search_state};
+use recipemanagement::text_search::{nuke_and_rebuild_with_recipes, setup_search_state, SearchState};
+use recipemanagement::*;
 
 const SESSION_VERSION: usize = 1;
 const SESSION_VERSION_KEY: &str = "session_version";
@@ -119,7 +119,7 @@ async fn index_handler(session: WritableSession) -> Html<String> {
 
     let hello = HelloTemplate {
         name: "world",
-        courses: course_refs.clone(),
+        courses: course_refs,
         title: "Recipes",
         user_id: maybe_user_id,
         build_version,
@@ -127,7 +127,7 @@ async fn index_handler(session: WritableSession) -> Html<String> {
     }; // instantiate your struct
     let a = hello.get();
 
-    return Html(a);
+    Html(a)
 }
 
 async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Html<String> {
@@ -148,9 +148,7 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
     let _a: Option<i32> = None;
 
 
-
-    
-    let recipes: Vec<FullRecipe> = recipe.filter(recipemanagement::schema::recipe::course_id.eq(res)).load::<FullRecipe>(con).unwrap();
+    let recipes: Vec<FullRecipe> = recipe.filter(schema::recipe::course_id.eq(res)).load::<FullRecipe>(con).unwrap();
     use recipemanagement::schema::book::dsl::*;
 
     let books: Vec<QBook> = book.load::<QBook>(con).unwrap().into_iter().sorted_by(|x, y| x.book_name.as_ref().unwrap().cmp(y.book_name.as_ref().unwrap())).collect();
@@ -181,7 +179,7 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
     let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
         .unwrap()
         .iter()
-        .map(|x| (x.clone().id.unwrap(), x.name.clone().unwrap()))
+        .map(|x| (x.id.unwrap(), x.name.clone().unwrap()))
         .collect();
 
     use recipemanagement::schema::recipe_ingredient::dsl::*;
@@ -258,7 +256,7 @@ async fn handle_course(session: WritableSession, Path(path): Path<String>) -> Ht
         debug_compilation: cfg!(debug_assertions),
     }.get();
 
-    return Html(das_content);
+    Html(das_content)
 }
 
 
@@ -277,12 +275,12 @@ async fn recipe_form(session: WritableSession, prefill: Query<RecipePrefill>) ->
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
     use recipemanagement::schema::recipe::dsl::*;
-    let newest_recipe: Option<FullRecipe> = recipe.order(recipemanagement::schema::recipe::recipe_id.desc()).first::<FullRecipe>(con)
+    let newest_recipe: Option<FullRecipe> = recipe.order(recipe_id.desc()).first::<FullRecipe>(con)
         .ok();
     let build_version = env!("VERGEN_GIT_SHA");
 
 
-    return Html(RecipeForm {
+    Html(RecipeForm {
         seasons: ESeason::get_seasons(),
         books: &books,
         courses: course_refs,
@@ -295,7 +293,7 @@ async fn recipe_form(session: WritableSession, prefill: Query<RecipePrefill>) ->
     }
         .get()
     )
-        .into_response();
+        .into_response()
 }
 
 #[derive(Deserialize)]
@@ -370,7 +368,7 @@ async fn post_recipe(State(search_state): State<SearchState>, session: WritableS
     let url = format!("/recipe/add?season={}&course={}&book={}", form.season, form.course, book_id.unwrap_or(-1));
 
 
-    return Redirect::to(url.as_str()).into_response();
+    Redirect::to(url.as_str()).into_response()
 }
 
 
@@ -391,13 +389,13 @@ async fn book_form(session: WritableSession) -> Response {
     let build_version = env!("VERGEN_GIT_SHA");
 
 
-    return Html(BookForm {
+    Html(BookForm {
         courses: course_refs,
         title: "Add book",
         user_id: maybe_user_id,
         build_version,
         debug_compilation: cfg!(debug_assertions),
-    }.get()).into_response();
+    }.get()).into_response()
 }
 
 async fn post_book(session: WritableSession, Form(form): Form<PostBook>) -> Redirect {
@@ -424,7 +422,7 @@ async fn post_book(session: WritableSession, Form(form): Form<PostBook>) -> Redi
         .unwrap();
 
 
-    return Redirect::to("/");
+    Redirect::to("/")
 }
 
 
@@ -456,8 +454,7 @@ async fn search_form(session: WritableSession) -> Response {
     let tried_ids: HashSet<i32> = query_tried(maybe_user_id.unwrap(), con);
 
 
-
-    return Html(SearchForm {
+    Html(SearchForm {
         seasons: ESeason::get_seasons(),
         books: &books,
         courses: course_refs,
@@ -472,17 +469,16 @@ async fn search_form(session: WritableSession) -> Response {
         texted,
         tried_ids,
         debug_compilation: cfg!(debug_assertions),
-    }.get()).into_response();
+    }.get()).into_response()
 }
 
 fn query_tried(query_user_id: i32, con: &mut LoggingConnection<SqliteConnection>) -> HashSet<i32> {
     use recipemanagement::schema::tried::dsl::*;
-    let mut tried_ids: HashSet<i32> = HashSet::new();
     let temp = tried.filter(user_id.eq(query_user_id))
         .load::<Tried>(con)
         .unwrap();
-    tried_ids = HashSet::from_iter(temp.iter().map(|x| x.recipe_id));
-    return tried_ids;
+    HashSet::from_iter(temp.iter().map(|x| x.recipe_id))
+
 }
 
 async fn search_result(State(search_state): State<SearchState>, session: WritableSession, Form(form): Form<SearchPrefill>) -> Response {
@@ -514,7 +510,7 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
     let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
         .unwrap()
         .iter()
-        .map(|x| (x.clone().id.unwrap(), x.name.clone().unwrap()))
+        .map(|x| (x.id.unwrap(), x.name.clone().unwrap()))
         .collect();
 
     use recipemanagement::schema::recipe_ingredient::dsl::*;
@@ -539,7 +535,7 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
     let tried_ids: HashSet<i32> = query_tried(maybe_user_id.expect("user should be logged in alrady"), con);
 
 
-    return Html(SearchForm {
+    Html(SearchForm {
         seasons: ESeason::get_seasons(),
         books: &books,
         courses: course_refs,
@@ -556,7 +552,7 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
         debug_compilation: cfg!(debug_assertions),
 
     }
-        .get()).into_response();
+        .get()).into_response()
 }
 
 async fn login_page(session: WritableSession) -> Html<String> {
@@ -566,13 +562,13 @@ async fn login_page(session: WritableSession) -> Html<String> {
     let build_version = env!("VERGEN_GIT_SHA");
 
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
-    return Html(LoginPage {
+    Html(LoginPage {
         courses: &courses,
         title: "Login",
         user_id: maybe_user_id,
         build_version,
         debug_compilation: cfg!(debug_assertions),
-    }.get());
+    }.get())
 }
 
 #[derive(Deserialize)]
@@ -585,7 +581,7 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
 
     let con = &mut database::establish_connection();
 
-    let sql_string = format!("SELECT * FROM user WHERE email=?");
+    let sql_string = "SELECT * FROM user WHERE email=?";
     let temp_user = sql_query(sql_string)
         .bind::<Text, _>(form.email)
         .load::<User>(con)
@@ -604,7 +600,7 @@ async fn my_login(mut session: WritableSession, Form(form): Form<Login>) -> Redi
     }
 
 
-    return Redirect::to("/");
+    Redirect::to("/")
 }
 
 async fn edit_recipe_form(session: WritableSession, Path(path): Path<i32>) -> Response {
@@ -616,9 +612,9 @@ async fn edit_recipe_form(session: WritableSession, Path(path): Path<i32>) -> Re
     let con = &mut database::establish_connection();
 
     let query = recipe
-        .filter(recipemanagement::schema::recipe::recipe_id.eq(path))
+        .filter(schema::recipe::recipe_id.eq(path))
         .load::<FullRecipe>(con)
-        .unwrap();
+        .expect("DB should work");
 
     let das_recipe = query
         .first();
@@ -642,26 +638,26 @@ WHERE recipe_id={}", path);
     let ingredient_prefill = ingredients.iter().map(|x| x.name.as_ref().unwrap()).join("\n");
     let prefill_season = das_recipe.as_ref().unwrap().primary_season as usize;
     use recipemanagement::schema::recipe_text::dsl::*;
-    let recipe_text_disp = recipe_text.filter(recipemanagement::schema::recipe_text::recipe_id.eq(path))
+    let recipe_text_disp = recipe_text.filter(schema::recipe_text::recipe_id.eq(path))
         .load::<RecipeText>(con)
         .unwrap().first().map(|x| x.content.clone()).unwrap_or("".to_string());
     let build_version = env!("VERGEN_GIT_SHA");
 
 
-    return Html(RecipeEditForm {
+    Html(RecipeEditForm {
         courses: &courses,
         recipe: das_recipe.as_ref().unwrap(),
         ingredients: ingredient_prefill,
         title: "Edit recipe",
         books: &books,
         seasons: ESeason::get_seasons(),
-        prefill_season: prefill_season,
+        prefill_season,
         recipe_text: recipe_text_disp,
         user_id: maybe_user_id,
         build_version,
         debug_compilation: cfg!(debug_assertions),
     }.get())
-        .into_response();
+        .into_response()
 }
 
 #[derive(Deserialize)]
@@ -694,7 +690,7 @@ async fn put_recipe(State(search_state): State<SearchState>, session: WritableSe
             .load::<FullRecipe>(x)
             .unwrap();
         let old_recipe = old_recipe_query.first().unwrap();
-        let update_url = form.recipe_url.filter(|x| !(x.trim().is_empty()));
+        let update_url = form.recipe_url.filter(|x| !x.trim().is_empty());
 
 
         let edit_recipe = FullInsertRecipe {
@@ -745,7 +741,7 @@ async fn put_recipe(State(search_state): State<SearchState>, session: WritableSe
 
             use recipemanagement::schema::recipe_ingredient::dsl::*;
 
-            let assigned_ingredients = recipe_ingredient.filter(recipemanagement::schema::recipe_ingredient::recipe_id.eq(path))
+            let assigned_ingredients = recipe_ingredient.filter(schema::recipe_ingredient::recipe_id.eq(path))
                 .load::<RecipeIngredient>(x)
                 .unwrap();
 
@@ -758,8 +754,8 @@ async fn put_recipe(State(search_state): State<SearchState>, session: WritableSe
                 .difference(&assigned_names)
                 .map(|x| x.to_string())
                 .collect::<HashSet<String, RandomState>>();
-            let to_delete: HashSet<String> = assigned_names.difference(&update_names).into_iter().map(|x| (x.clone())).collect();
-            let to_insert: HashSet<String> = update_names.difference(&existing_names).into_iter().map(|x| (x.clone())).collect();
+            let to_delete: HashSet<String> = assigned_names.difference(&update_names).into_iter().map(|x| x.clone()).collect();
+            let to_insert: HashSet<String> = update_names.difference(&existing_names).into_iter().map(|x| x.clone()).collect();
 
             let connect_obs: Vec<InsertRecipeIngredient> = to_connect.into_iter()
                 .map(|x| ingredient_to_id.get(x.as_str()).unwrap())
@@ -773,7 +769,7 @@ async fn put_recipe(State(search_state): State<SearchState>, session: WritableSe
 
             let delete_ids: Vec<i32> = to_delete.into_iter().map(|x| *(ingredient_to_id.get(x.as_str()).unwrap()))
                 .collect();
-            diesel::delete(recipe_ingredient.filter(recipemanagement::schema::recipe_ingredient::recipe_id.eq(path)).filter(ingredient_id.eq_any(&delete_ids)))
+            diesel::delete(recipe_ingredient.filter(schema::recipe_ingredient::recipe_id.eq(path)).filter(ingredient_id.eq_any(&delete_ids)))
                 .execute(x).unwrap();
 
             let start_id: i32 = ingredient.select(max(id))
@@ -806,7 +802,7 @@ async fn put_recipe(State(search_state): State<SearchState>, session: WritableSe
     }
     );
     nuke_and_rebuild_index(&search_state);
-    return Redirect::to(format!("/recipe/detail/{}", path).as_str())
+    Redirect::to(format!("/recipe/detail/{}", path).as_str())
 }
 
 async fn toggle_tried(session: WritableSession, Path(path): Path<i32>) -> StatusCode {
@@ -838,7 +834,7 @@ async fn toggle_tried(session: WritableSession, Path(path): Path<i32>) -> Status
     });
 
 
-    return StatusCode::OK;
+    StatusCode::OK
 }
 
 pub struct RecipeEditQuery {}
@@ -850,7 +846,7 @@ fn query_for_recipe_detail<'a, 'b>(con: &mut LoggingConnection<SqliteConnection>
     let query = recipe
         .filter(schema::recipe::recipe_id.eq(path))
         .load::<FullRecipe>(con)
-        .unwrap();
+        .expect("Expected DB to work");
 
     let das_recipe = query
         .first();
@@ -860,11 +856,11 @@ fn query_for_recipe_detail<'a, 'b>(con: &mut LoggingConnection<SqliteConnection>
 
     use recipemanagement::schema::book::dsl::*;
 
-    let disp_book: Option<String> = book.filter(schema::book::dsl::book_id.eq(das_recipe.unwrap().book_id)).load::<QBook>(con).unwrap()
+    let disp_book: Option<String> = book.filter(schema::book::dsl::book_id.eq(das_recipe.unwrap().book_id)).load::<QBook>(con).expect("Expected DB to work")
         .first()
         .map(|x| x.book_name.as_ref().unwrap().clone());
 
-    let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
+    let courses: Vec<QCourse> = course.load::<QCourse>(con).expect("Expected DB to work");
     let res_recipe = das_recipe.unwrap();
 
     let course_name: String = courses.iter()
@@ -880,7 +876,7 @@ FROM recipe_ingredient INNER JOIN ingredient i on i.id = recipe_ingredient.ingre
 WHERE recipe_id={}", path);
     let ingredients: Vec<String> = sql_query(ingredient_query_sql)
         .load::<Ingredient>(con)
-        .unwrap()
+        .expect("DB should work")
         .iter()
         .map(|x| x.name.as_ref().unwrap().clone())
         .collect();
@@ -891,21 +887,21 @@ WHERE recipe_id={}", path);
             tried.filter(schema::tried::user_id.eq(cur_user_id))
                 .filter(schema::tried::recipe_id.eq(path))
         )
-    ).get_result::<bool>(con).unwrap();
+    ).get_result::<bool>(con).expect("DB should work");
 
     use recipemanagement::schema::recipe_comment::dsl::*;
 
-    let comments = recipe_comment.filter(recipemanagement::schema::recipe_comment::recipe_id.eq(path))
+    let comments = recipe_comment.filter(schema::recipe_comment::recipe_id.eq(path))
         .load::<Comment>(con)
-        .unwrap();
+        .expect("DB should work");
     use recipemanagement::schema::recipe_text::dsl::*;
 
     let recipe_text_disp = recipe_text.filter(schema::recipe_text::recipe_id.eq(path))
         .load::<RecipeText>(con)
-        .unwrap().first().map(|x| x.content.clone()).unwrap_or("".to_string());
+        .expect("Expected DB to work").first().map(|x| x.content.clone()).unwrap_or("".to_string());
 
 
-    return Ok(Some(RecipeDetailQuery {
+    Ok(Some(RecipeDetailQuery {
         courses,
         course: course_name,
         recipe: res_recipe.clone(),
@@ -916,7 +912,7 @@ WHERE recipe_id={}", path);
         tried: already_exists,
         comments,
         recipe_text: recipe_text_disp,
-    }));
+    }))
 }
 
 struct RecipeDetailQuery {
@@ -943,7 +939,7 @@ async fn recipe_detail(session: WritableSession, Path(path): Path<i32>) -> Respo
     let res = con.transaction(|x| query_for_recipe_detail(x, path, maybe_user_id.unwrap()));
     let build_version = env!("VERGEN_GIT_SHA");
 
-    return Html(res.ok()
+    Html(res.ok()
         .unwrap()
         .map(|x| RecipeDetail {
             courses: &x.courses,
@@ -961,7 +957,7 @@ async fn recipe_detail(session: WritableSession, Path(path): Path<i32>) -> Respo
             debug_compilation: cfg!(debug_assertions),
         }.get())
         .unwrap_or("404".to_string())
-    ).into_response();
+    ).into_response()
 }
 
 #[derive(Deserialize)]
@@ -986,14 +982,14 @@ async fn post_comment(session: WritableSession, Path(path): Path<i32>, Form(form
             content: form.comment.trim().to_string(),
         };
 
-        diesel::insert_into(recipemanagement::schema::recipe_comment::table)
+        diesel::insert_into(schema::recipe_comment::table)
             .values(vec![insert_comment])
             .execute(con)
             .unwrap();
     }
 
 
-    return Redirect::to(format!("/recipe/detail/{}", path).as_str()).into_response();
+    Redirect::to(format!("/recipe/detail/{}", path).as_str()).into_response()
 }
 
 fn get_user_id(mut session: WritableSession) -> Option<i32> {
@@ -1007,5 +1003,5 @@ fn get_user_id(mut session: WritableSession) -> Option<i32> {
         session.destroy();
         return None;
     }
-    return maybe_user_id;
+    maybe_user_id
 }

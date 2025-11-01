@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ops::Deref;
 
 use diesel::{RunQueryDsl, SqliteConnection};
 use diesel_logger::LoggingConnection;
@@ -58,8 +57,8 @@ WHERE recipe_comment.content LIKE '%{}%')", name_for_real, name_for_real, name_f
     if simple_criteria.is_empty() {
         return asdf;
     }
-    let res = vec![asdf, simple_criteria.iter().join("AND")].iter().join(" WHERE ");
-    return "SELECT * FROM recipe WHERE 1=2;".to_string();
+    vec![asdf, simple_criteria.iter().join("AND")].iter().join(" WHERE ");
+    "SELECT * FROM recipe WHERE 1=2;".to_string()
 }
 
 fn handle_seasons( params: &SearchPrefill) -> Option<String>{
@@ -72,7 +71,7 @@ fn handle_seasons( params: &SearchPrefill) -> Option<String>{
         return None;
     }
 
-    return Some(format!("primary_season IN ({})", search_seasons.join(",")));
+    Some(format!("primary_season IN ({})", search_seasons.join(",")))
 }
 
 pub fn build_index_search_query(ids: Vec<i64>, search_args: &SearchPrefill, user_id: i32) -> String {
@@ -87,7 +86,7 @@ WHERE tried.recipe_id IN ({}) AND user_id={};", id_string, user_id);
         return query;
     }
 
-    return format!("SELECT * FROM recipe WHERE recipe_id IN ({})", id_string);
+    format!("SELECT * FROM recipe WHERE recipe_id IN ({})", id_string)
 }
 
 pub fn get_recipe_ids_with_comments() -> String {
@@ -106,7 +105,7 @@ pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<R
     let id_to_ingredients: HashMap<i32, String> = ingredient.load::<Ingredient>(con)
         .unwrap()
         .iter()
-        .map(|x| (x.clone().id.unwrap(), x.name.clone().unwrap()))
+        .map(|x| (x.id.unwrap(), x.name.clone().unwrap()))
         .collect();
     use crate::schema::recipe_ingredient::dsl::*;
     let recipes_to_ingredients: HashMap<i32, Vec<String>> = recipe_ingredient.load::<RecipeIngredient>(con)
@@ -142,7 +141,7 @@ pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<R
     let olol: Vec<RecipeQueryResult> = recipes.iter()
         .map(|x| map_recipe_and_ingredient(x, &recipes_to_ingredients, &ids_to_texts, &course_id_to_name, &book_id_to_name))
         .collect();
-    return olol;
+    olol
 }
 
 pub struct RecipeQueryResult {
@@ -171,22 +170,22 @@ pub fn query_all_courses(con: &mut LoggingConnection<SqliteConnection>){
 fn map_recipe_and_ingredient(x: &FullRecipe, recipes_to_ingredients: &HashMap<i32, Vec<String>>, ids_to_texts: &HashMap<i32, String>,
                              course_id_to_name: &HashMap<i32, String>, book_id_to_name: &HashMap<i32, String>,
 ) -> RecipeQueryResult {
-    let ingredients = if recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).is_none() {
+    let ingredients = if recipes_to_ingredients.get(&x.recipe_id.unwrap()).is_none() {
         vec![]
     } else {
-        recipes_to_ingredients.deref().get(&x.recipe_id.unwrap()).unwrap().clone()
+        recipes_to_ingredients.get(&x.recipe_id.unwrap()).unwrap().clone()
     };
     let course_name = course_id_to_name.get(&x.course_id).unwrap();
     let book_name = x.book_id.map(|y| book_id_to_name.get(&y)).flatten().map(|x| x.clone());
     let text = ids_to_texts.get(&x.recipe_id.unwrap());
 
 
-    return RecipeQueryResult {
+    RecipeQueryResult {
         recipe: x.clone(),
         ingredients,
         recipe_text: text.map(|x| x.clone()),
         comments: vec![],
         course_name: course_name.clone(),
-        book_name: book_name,
-    };
+        book_name,
+    }
 }
