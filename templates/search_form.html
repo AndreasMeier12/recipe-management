@@ -101,7 +101,7 @@
         endif %}
         {% let ingredients = recipes_to_ingredients.get(recipe.recipe_id.as_ref().unwrap()) %}
         {% if recipe.book_id.is_some() %}({{ id_to_book_name.get(recipe.book_id.as_ref().unwrap()).unwrap() }}
-            {% if recipe.page.is_some() %}- {{ recipe.page.unwrap() }}{% endif %} ){% endif %}
+        {% if recipe.page.is_some() %}- {{ recipe.page.unwrap() }}{% endif %}){% endif %}
         {% if ingredients.is_some()%}
         <span class="js-collapse js-neighborino-collapsed">Ingredients</span>
         <ul class="js-collapsible list-group js-collapsed">
