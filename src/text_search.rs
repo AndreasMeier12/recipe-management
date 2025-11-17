@@ -10,9 +10,7 @@ use tokio::sync::Mutex;
 use crate::args::SearchPrefill;
 use crate::parsetypes::ESeason;
 use crate::queries::RecipeQueryResult;
-use crate::search::stop_words::StopFilter;
 use crate::search::synonym_tokenizer::SynonymFilter;
-
 
 #[derive(Clone)]
 pub struct SearchState {
@@ -27,7 +25,6 @@ pub fn setup_search_state() -> tantivy::Result<SearchState> {
     let index = Index::builder().schema(schema.clone()).create_from_tempdir()?;
     let tokenizer = TextAnalyzer::builder(SimpleTokenizer::default())
         .filter(LowerCaser)
-        .filter(StopFilter)
         .filter(AsciiFoldingFilter)
         .filter(Stemmer::new(Language::English))
         .filter(SynonymFilter)
