@@ -1,11 +1,5 @@
 use std::collections::HashMap;
 
-use diesel::{RunQueryDsl, sql_query, SqliteConnection};
-use diesel_logger::LoggingConnection;
-use tantivy::{Document, Index};
-use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
-
 use crate::args::SearchPrefill;
 use crate::models::{FullRecipe, QBook, QCourse};
 use crate::parsetypes::ESeason;
@@ -13,6 +7,12 @@ use crate::queries::{build_index_search_query, build_search_query};
 use crate::schema::book::dsl::book;
 use crate::schema::course::dsl::course;
 use crate::text_search::{build_query, SCHEMA_BODY, SCHEMA_INGREDIENTS, SCHEMA_RECIPE_ID, SCHEMA_TITLE};
+use diesel::{sql_query, RunQueryDsl, SqliteConnection};
+use diesel_logger::LoggingConnection;
+use tantivy::collector::TopDocs;
+use tantivy::query::QueryParser;
+use tantivy::schema::Value;
+use tantivy::{Index, TantivyDocument};
 
 pub fn search(search_args: &SearchPrefill, con: &mut LoggingConnection<SqliteConnection>, index: &Index, user_id: i32) -> Vec<FullRecipe> {
     let sql_string: String = if search_args.legacy.filter(|x| x.clone() == 1).is_some() { build_search_query(&search_args, user_id) } else { build_tantivy_search_for_sql(search_args, con, index, user_id) };
@@ -49,7 +49,7 @@ fn build_tantivy_search_for_sql(search_args: &SearchPrefill, con: &mut LoggingCo
     let query = query_parser.parse_query(query_string.as_str()).unwrap();
     let searcher = reader.searcher();
     let results = searcher.search(&query, &TopDocs::with_limit(1024));
-    let index_recipes: Vec<Document> = results.unwrap().iter().map(|x| searcher.doc(x.1))
+    let index_recipes: Vec<TantivyDocument> = results.unwrap().iter().map(|x| searcher.doc(x.1))
         .filter(|x| x.is_ok())
         .map(|x| x.unwrap())
         .collect();

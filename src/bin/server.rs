@@ -2,10 +2,6 @@
 extern crate log;
 
 
-use std::collections::hash_map::RandomState;
-use std::collections::{HashMap, HashSet};
-use std::net::SocketAddr;
-
 use argon2::{
     password_hash::{
         PasswordHash, PasswordVerifier,
@@ -28,17 +24,21 @@ use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
 use serde::Deserialize;
+use std::collections::hash_map::RandomState;
+use std::collections::{HashMap, HashSet};
+use std::net::SocketAddr;
+use std::ops::Deref;
 
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
-use recipemanagement::queries::query_all_recipes;
+use recipemanagement::queries::{query_all_recipes, RecipeQueryResult};
 use recipemanagement::schema::course::dsl::course;
 use recipemanagement::search::search_toggle;
 use recipemanagement::secret::get_secret;
 use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
-use recipemanagement::text_search::{nuke_and_rebuild_with_recipes, setup_search_state, SearchState};
+use recipemanagement::text_search::{nuke_and_rebuild_with_recipes, setup_search_state, update_index, SearchState};
 use recipemanagement::*;
 
 const SESSION_VERSION: usize = 1;
@@ -801,7 +801,12 @@ async fn put_recipe(State(search_state): State<SearchState>, session: WritableSe
         Ok(())
     }
     );
-    nuke_and_rebuild_index(&search_state);
+
+    let vec1 = query_all_recipes(con);
+    let x1 = vec1.into_iter().filter(|x| x.recipe.recipe_id.expect("Recipe should have an id") == path)
+        .find_or_first(|x| 1 > 0).expect("The recipe should be found by id");
+
+    update_index(&search_state, x1);
     Redirect::to(format!("/recipe/detail/{}", path).as_str())
 }
 

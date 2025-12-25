@@ -4,7 +4,7 @@ use std::sync::Arc;
 use itertools::Itertools;
 use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED};
 use tantivy::tokenizer::{AsciiFoldingFilter, Language, LowerCaser, SimpleTokenizer, Stemmer, TextAnalyzer};
-use tantivy::{Document, Index, IndexWriter};
+use tantivy::{Document, Index, IndexWriter, TantivyDocument, Term};
 use tokio::sync::Mutex;
 
 use crate::args::SearchPrefill;
@@ -68,7 +68,7 @@ fn build_schema() -> Schema {
     schema_builder.add_text_field(SCHEMA_BODY, text_options.clone());
     schema_builder.add_text_field(SCHEMA_INGREDIENTS, text_options.clone());
     schema_builder.add_text_field(SCHEMA_URL, text_options.clone());
-    schema_builder.add_text_field(SCHEMA_RECIPE_ID, STORED);
+    schema_builder.add_i64_field(SCHEMA_RECIPE_ID, STORED);
     schema_builder.add_facet_field(SCHEMA_BOOK, FacetOptions::default());
     schema_builder.add_facet_field(SCHEMA_SEASON, FacetOptions::default());
     schema_builder.add_facet_field(SCHEMA_COURSE, FacetOptions::default());
@@ -78,6 +78,17 @@ fn build_schema() -> Schema {
 
 const INDEX_MEMORY: usize = 50_000_000;
 
+pub fn update_index(search_state: &SearchState, recipe: RecipeQueryResult) {
+    let schema = search_state.index.schema();
+    let mut index_writer = futures::executor::block_on(search_state.writer.lock());
+    let id_term = Term::from_field_i64(schema.get_field(SCHEMA_RECIPE_ID).expect("ID should exist"), recipe.recipe.recipe_id.expect("Recipe should have an id") as i64);
+    index_writer.delete_term(id_term);
+    let season_ids_to_seasons = ESeason::to_map();
+    let doc = recipe_to_doc(schema.clone(), season_ids_to_seasons.clone(), &recipe);
+    index_writer.add_document(doc).expect("Adding should work");
+    index_writer.commit().expect("Commiting should work!");
+}
+
 
 pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<RecipeQueryResult>) {
     let schema = search_state.index.schema();
@@ -85,31 +96,35 @@ pub fn nuke_and_rebuild_with_recipes(search_state: &SearchState, recipes: Vec<Re
     index_writer.delete_all_documents().expect("Writer access should be there");
     let season_ids_to_seasons = ESeason::to_map();
     for enriched_recipe in recipes {
-        let mut doc = Document::default();
-        if let Some(i) = enriched_recipe.recipe.recipe_name {
-            doc.add_text(schema.get_field(SCHEMA_TITLE).unwrap(), i);
-        }
-        for ingredient_name in enriched_recipe.ingredients {
-            doc.add_text(schema.get_field(SCHEMA_INGREDIENTS).unwrap(), ingredient_name);
-        }
-        doc.add_i64(schema.get_field(SCHEMA_RECIPE_ID).unwrap(), enriched_recipe.recipe.recipe_id.unwrap() as i64);
-        doc.add_facet(schema.get_field(SCHEMA_COURSE).unwrap(), Facet::from(format!("/course/{}", enriched_recipe.course_name).as_str()));
-
-
-        if let Some(name_string) = enriched_recipe.book_name {
-            doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(format!("/book/{}", name_string.as_str()).as_str()));
-        }
-
-        if let Some(i) = enriched_recipe.recipe_text {
-            doc.add_text(schema.get_field(SCHEMA_BODY).unwrap(), i);
-        }
-        let season_name = season_ids_to_seasons.get(&(enriched_recipe.recipe.primary_season as usize)).map(|x| x.to_string()).unwrap();
-        doc.add_facet(schema.get_field(SCHEMA_SEASON).unwrap(), Facet::from(format!("/season/{}", season_name.as_str()).as_str()));
+        let doc = recipe_to_doc(schema.clone(), season_ids_to_seasons.clone(), &enriched_recipe);
 
         index_writer.add_document(doc).expect("Writing should still work");
     }
     index_writer.commit().expect("Commit should work");
+}
 
+fn recipe_to_doc(schema: Schema, season_ids_to_seasons: HashMap<usize, ESeason>, enriched_recipe: &RecipeQueryResult) -> TantivyDocument {
+    let mut doc = TantivyDocument::default();
+    if let Some(i) = enriched_recipe.recipe.recipe_name.clone() {
+        doc.add_text(schema.get_field(SCHEMA_TITLE).unwrap(), i);
+    }
+    for ingredient_name in enriched_recipe.ingredients.clone() {
+        doc.add_text(schema.get_field(SCHEMA_INGREDIENTS).unwrap(), ingredient_name);
+    }
+    doc.add_i64(schema.get_field(SCHEMA_RECIPE_ID).unwrap(), enriched_recipe.recipe.recipe_id.unwrap() as i64);
+    doc.add_facet(schema.get_field(SCHEMA_COURSE).unwrap(), Facet::from(format!("/course/{}", enriched_recipe.course_name).as_str()));
+
+
+    if let Some(name_string) = enriched_recipe.book_name.clone() {
+        doc.add_facet(schema.get_field(SCHEMA_BOOK).unwrap(), Facet::from(format!("/book/{}", name_string.as_str()).as_str()));
+    }
+
+    if let Some(i) = enriched_recipe.recipe_text.clone() {
+        doc.add_text(schema.get_field(SCHEMA_BODY).unwrap(), i);
+    }
+    let season_name = season_ids_to_seasons.get(&(enriched_recipe.recipe.primary_season as usize)).map(|x| x.to_string()).unwrap();
+    doc.add_facet(schema.get_field(SCHEMA_SEASON).unwrap(), Facet::from(format!("/season/{}", season_name.as_str()).as_str()));
+    doc
 }
 
 pub fn search() {}
