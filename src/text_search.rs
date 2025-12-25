@@ -1,7 +1,8 @@
+use diesel::query_builder::Query;
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::sync::Arc;
-
-use itertools::Itertools;
+use tantivy::query::BooleanQuery;
 use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED};
 use tantivy::tokenizer::{AsciiFoldingFilter, Language, LowerCaser, SimpleTokenizer, Stemmer, TextAnalyzer};
 use tantivy::{Document, Index, IndexWriter, TantivyDocument, Term};
@@ -44,11 +45,11 @@ pub const SCHEMA_BODY: &'static str = "body";
 
 const SCHEMA_URL: &'static str = "url";
 
-const SCHEMA_BOOK: &'static str = "book";
+pub const SCHEMA_BOOK: &'static str = "book";
 
-const SCHEMA_SEASON: &'static str = "season";
+pub const SCHEMA_SEASON: &'static str = "season";
 
-const SCHEMA_COURSE: &'static str = "course";
+pub const SCHEMA_COURSE: &'static str = "course";
 
 pub const SCHEMA_RECIPE_ID: &'static str = "recipe_id";
 
@@ -129,8 +130,8 @@ fn recipe_to_doc(schema: Schema, season_ids_to_seasons: HashMap<usize, ESeason>,
 
 pub fn search() {}
 
-pub fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, season_names: HashMap<usize, ESeason>, course_names: HashMap<i32, String>) -> String {
-    let mut parts: Vec<String> = vec![];
+pub fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, season_names: HashMap<usize, ESeason>, course_names: HashMap<i32, String>) -> BooleanQuery {
+    let mut parts: Vec<Box<dyn Query>> = vec![];
     if let Some(name_query) = options.clone().name.filter(|x| !x.trim().is_empty()) {
         name_query.split(" ").into_iter().for_each(|x| parts.push(format!("+{}", x)));
     }
@@ -150,7 +151,7 @@ pub fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, sea
 }
 
 
-fn build_season_term(options: SearchPrefill, season_names: HashMap<usize, ESeason>) -> Option<String> {
+pub fn build_season_term(options: SearchPrefill, season_names: HashMap<usize, ESeason>) -> Option<String> {
     let raw_vals: Vec<Option<i32>> = vec![options.season1, options.season2, options.season3, options.season4, options.season5];
 
     let season_names: Vec<String> = raw_vals.iter().enumerate()
