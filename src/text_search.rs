@@ -136,7 +136,7 @@ pub fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, sea
     }
 
     if let Some(i) = book_names.get(&options.clone().book.unwrap_or(-1)) {
-        parts.push(format!("+book:/book/{}", i))
+        parts.push(format!("+book:\"/book/{}\"", i))
     }
     if let Some(season_term) = build_season_term(options.clone(), season_names) {
         parts.push(season_term)
