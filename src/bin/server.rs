@@ -320,6 +320,7 @@ async fn post_recipe(State(search_state): State<SearchState>, session: WritableS
     let book_id = form.book.map(|x| x.parse::<i32>()).and_then(|x| x.ok()).filter(|x| *x >= 0);
     let page = form.page.map(|x| x.parse::<i32>()).and_then(|x| x.ok());
     let recipe_url = form.recipe_url.map(|x| x.trim().to_string()).filter(|x| !x.is_empty());
+    let mut cur_recipe_id: i32 = 0;
     let recipe_struct = InsertRecipeWithUrl { recipe_id: None, recipe_name: form.name, primary_season: form.season, course_id: form.course, book_id, page, recipe_url };
     con.transaction::<_, Error, _>(|x| {
         diesel::insert_into(schema::recipe::table)
@@ -328,7 +329,7 @@ async fn post_recipe(State(search_state): State<SearchState>, session: WritableS
             .unwrap();
 
         use recipemanagement::schema::recipe::dsl::*;
-        let cur_recipe_id: i32 = recipe.order(recipe_id.desc()).first::<FullRecipe>(x)
+        cur_recipe_id = recipe.order(recipe_id.desc()).first::<FullRecipe>(x)
             .unwrap()
             .recipe_id
             .unwrap();
@@ -363,6 +364,11 @@ async fn post_recipe(State(search_state): State<SearchState>, session: WritableS
         return Ok(());
     }
     ).unwrap();
+    let vec1 = query_all_recipes(con);
+    let x1 = vec1.into_iter().filter(|x| x.recipe.recipe_id.expect("Recipe should have an id") == cur_recipe_id)
+        .find_or_first(|x| 1 > 0).expect("The recipe should be found by id");
+
+
     nuke_and_rebuild_index(&search_state);
 
     let url = format!("/recipe/add?season={}&course={}&book={}", form.season, form.course, book_id.unwrap_or(-1));
