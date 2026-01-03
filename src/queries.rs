@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use diesel::{RunQueryDsl, SqliteConnection};
-use diesel_logger::LoggingConnection;
 use itertools::Itertools;
 
 use crate::args::SearchPrefill;
@@ -97,7 +96,7 @@ pub fn get_recipe_ids_with_texts() -> String {
     "SELECT DISTINCT recipe_id FROM recipe_text;".to_string()
 }
 
-pub fn query_all_recipes(con: &mut LoggingConnection<SqliteConnection>) -> Vec<RecipeQueryResult> {
+pub fn query_all_recipes(con: &mut SqliteConnection) -> Vec<RecipeQueryResult> {
     use crate::schema::recipe::dsl::*;
 
     let recipes: Vec<FullRecipe> = recipe.load::<FullRecipe>(con).unwrap();

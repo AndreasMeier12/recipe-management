@@ -20,7 +20,6 @@ use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::{Integer, Text};
 use diesel::{select, sql_query};
-use diesel_logger::LoggingConnection;
 use env_logger::Env;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -438,7 +437,7 @@ async fn search_form(session: WritableSession) -> Response {
         return Redirect::to("/login").into_response();
     }
 
-    let con: &mut LoggingConnection<SqliteConnection> = &mut database::establish_connection();
+    let con: &mut SqliteConnection = &mut database::establish_connection();
 
     use recipemanagement::schema::book::dsl::*;
 
@@ -478,7 +477,7 @@ async fn search_form(session: WritableSession) -> Response {
     }.get()).into_response()
 }
 
-fn query_tried(query_user_id: i32, con: &mut LoggingConnection<SqliteConnection>) -> HashSet<i32> {
+fn query_tried(query_user_id: i32, con: &mut SqliteConnection) -> HashSet<i32> {
     use recipemanagement::schema::tried::dsl::*;
     let temp = tried.filter(user_id.eq(query_user_id))
         .load::<Tried>(con)
@@ -851,7 +850,7 @@ async fn toggle_tried(session: WritableSession, Path(path): Path<i32>) -> Status
 pub struct RecipeEditQuery {}
 
 
-fn query_for_recipe_detail<'a, 'b>(con: &mut LoggingConnection<SqliteConnection>, path: i32, cur_user_id: i32) -> Result<Option<RecipeDetailQuery>, Error> {
+fn query_for_recipe_detail<'a, 'b>(con: &mut SqliteConnection, path: i32, cur_user_id: i32) -> Result<Option<RecipeDetailQuery>, Error> {
     use recipemanagement::schema::recipe::dsl::*;
 
     let query = recipe
