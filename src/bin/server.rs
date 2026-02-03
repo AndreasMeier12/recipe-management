@@ -506,9 +506,7 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
     let course_refs: &Vec<QCourse> = &courses;
 
 
-    
-
-    let books: Vec<QBook> = book.load::<QBook>(con).unwrap();
+    let books: Vec<QBook> = book.load::<QBook>(con).unwrap().into_iter().sorted_by(|x, y| x.book_name.as_ref().unwrap().cmp(y.book_name.as_ref().unwrap())).collect();
     let recipes = search_toggle::search(&form, con, &search_state.index, maybe_user_id.unwrap());
 
     use recipemanagement::schema::ingredient::dsl::*;
