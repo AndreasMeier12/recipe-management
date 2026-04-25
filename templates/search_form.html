@@ -92,6 +92,7 @@
     </ul>
     <hr>
     <h2>results</h2>
+<p>Found {{ recipes.as_ref().unwrap().len() }} results, </p>
 
 <ul class="list-group">
     {% for recipe in recipes.as_ref().unwrap() %}
