@@ -111,6 +111,8 @@ pub struct DisplayFullRecipe {
     pub url: Option<String>,
     pub tried: bool,
     pub ingredients: Option<Vec<String>>,
+    pub texted: bool,
+    pub commented: bool,
 }
 
 pub struct FoundRecipesWithMetadata {
