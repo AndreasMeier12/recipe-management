@@ -120,11 +120,11 @@
             {% if texted.contains(id_ref) %}🗒️{% endif %}
             {% let has_tried = tried_ids.contains(id_ref) %}
         </td>
-        <td>recipe.course_id</td>
-        <td>recipe.season_id</td>
-        <td>{% if recipe.book_name.is_some() %}recipe.book_name.as_ref().unwrap(){% endif %})
+        <td>{{ recipe.course }}</td>
+        <td>{{ recipe.season }}</td>
+        <td>{% if recipe.book_name.is_some() %}{{ recipe.book_name.as_ref().unwrap() }}{% endif %}
         </td>
-        <td>{% if recipe.url.as_ref().is_some() %} - <a href="{{recipe.url.as_ref().unwrap()}}">Link</a>{%
+        <td>{% if recipe.url.as_ref().is_some() %}<a href="{{recipe.url.as_ref().unwrap()}}">Link</a>{%
             endif %}
         </td>
         <td> {% if ingredients.is_some()%}

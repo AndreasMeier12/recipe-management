@@ -113,6 +113,8 @@ pub struct DisplayFullRecipe {
     pub ingredients: Option<Vec<String>>,
     pub texted: bool,
     pub commented: bool,
+    pub course: String,
+    pub season: String
 }
 
 pub struct FoundRecipesWithMetadata {
