@@ -10,3 +10,4 @@ pub mod secret;
 
 pub mod text_search;
 pub mod search;
+pub mod mapping;

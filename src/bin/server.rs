@@ -22,13 +22,8 @@ use diesel::sql_types::{Integer, Text};
 use diesel::{select, sql_query};
 use env_logger::Env;
 use itertools::Itertools;
-use serde::Deserialize;
-use std::collections::hash_map::RandomState;
-use std::collections::{HashMap, HashSet};
-use std::net::SocketAddr;
-use std::ops::Deref;
-
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
+use recipemanagement::mapping::template_util_mapping::mapRecipeForSearch;
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::queries::{query_all_recipes, RecipeQueryResult};
@@ -39,6 +34,13 @@ use recipemanagement::strops::extract_domain;
 use recipemanagement::templates::*;
 use recipemanagement::text_search::{nuke_and_rebuild_with_recipes, setup_search_state, update_index, SearchState};
 use recipemanagement::*;
+use serde::de::EnumAccess;
+use serde::Deserialize;
+use std::collections::hash_map::RandomState;
+use std::collections::{HashMap, HashSet};
+use std::iter::Map;
+use std::net::SocketAddr;
+use std::ops::Deref;
 
 const SESSION_VERSION: usize = 1;
 const SESSION_VERSION_KEY: &str = "session_version";
@@ -463,7 +465,7 @@ async fn search_form(session: WritableSession) -> Response {
         seasons: ESeason::get_seasons(),
         books: &books,
         courses: course_refs,
-        recipes: None,
+        found_recipes: None,
         title: "Search",
         recipes_to_ingredients: Default::default(),
         user_id: maybe_user_id,
@@ -535,14 +537,30 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
         .map(|x| x.recipe_id).collect();
     use recipemanagement::schema::recipe_comment::dsl::*;
     let commented: HashSet<i32> = recipe_comment.load::<Comment>(con).unwrap().iter().map(|x| x.recipe_id).collect();
-    let tried_ids: HashSet<i32> = query_tried(maybe_user_id.expect("user should be logged in alrady"), con);
+    let tried_ids: HashSet<i32> = query_tried(maybe_user_id.expect("user should be logged in already"), con);
+    let id_to_season: HashMap<i32, ESeason> = ESeason::get_seasons().iter().map(|x| (x.value_i32(), x.clone())).collect();
+    let id_to_courses: HashMap<i32, &QCourse> = Map::collect(course_refs.iter().map(|x| (x.course_id.expect("Should exist"), x.clone())));
 
+    let result_recipes: Vec<DisplayFullRecipe> = recipes.iter().map(|x| mapRecipeForSearch(x, &commented, &tried_ids, &texted, &id_to_book_name, &recipes_to_ingredients, &id_to_season, &id_to_courses))
+        .collect();
+
+    let num_results = result_recipes.len();
+    let num_tried = recipes.into_iter().filter(|x| tried_ids.contains(&x.recipe_id.expect("Should exist")))
+        .count();
+    let num_not_tried = num_results - num_tried;
+
+    let recipes_with_metadata = FoundRecipesWithMetadata {
+        recipes: result_recipes,
+        num_results: num_results,
+        num_tried: num_tried,
+        num_not_tried: num_not_tried,
+    };
 
     Html(SearchForm {
         seasons: ESeason::get_seasons(),
         books: &books,
         courses: course_refs,
-        recipes: Some(recipes),
+        found_recipes: Some(recipes_with_metadata),
         title: "Search",
         recipes_to_ingredients,
         user_id: maybe_user_id,
