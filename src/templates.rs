@@ -104,13 +104,29 @@ impl<'a> RecipeForm<'a> {
     }
 }
 
+pub struct DisplayFullRecipe {
+    pub recipe: FullRecipe,
+    pub season_name: String,
+    pub book_name: Option<String>,
+    pub url: Option<String>,
+    pub tried: bool,
+    pub ingredients: Option<Vec<String>>,
+}
+
+pub struct FoundRecipesWithMetadata {
+    pub recipes: Vec<DisplayFullRecipe>,
+    pub num_results: usize,
+    pub num_tried: usize,
+    pub num_not_tried: usize,
+}
+
 #[derive(Template)] // this will generate the code...
 #[template(path = "search_form.html")] // using the template in this path, relative
 pub struct SearchForm<'a> {
     pub courses: &'a Vec<QCourse>,
     pub books: &'a Vec<QBook>,
     pub seasons: Vec<ESeason>,
-    pub recipes: Option<Vec<FullRecipe>>,
+    pub found_recipes: Option<FoundRecipesWithMetadata>,
     pub title: &'a str,
     pub recipes_to_ingredients: HashMap<i32, Vec<String>>,
     pub user_id: Option<i32>,
