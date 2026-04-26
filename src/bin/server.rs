@@ -29,6 +29,7 @@ use std::net::SocketAddr;
 use std::ops::Deref;
 
 use recipemanagement::args::{RecipePrefill, SearchPrefill};
+use recipemanagement::mapping::template_util_mapping::mapRecipeForSearch;
 use recipemanagement::models::*;
 use recipemanagement::parsetypes::ESeason;
 use recipemanagement::queries::{query_all_recipes, RecipeQueryResult};
@@ -538,11 +539,26 @@ async fn search_result(State(search_state): State<SearchState>, session: Writabl
     let tried_ids: HashSet<i32> = query_tried(maybe_user_id.expect("user should be logged in alrady"), con);
 
 
+    let result_recipes: Vec<DisplayFullRecipe> = recipes.iter().map(|x| mapRecipeForSearch(x, &commented, &tried_ids, &texted, &id_to_book_name, &recipes_to_ingredients))
+        .collect();
+
+    let num_results = result_recipes.len();
+    let num_tried = recipes.into_iter().filter(|x| tried_ids.contains(&x.recipe_id.expect("Should exist")))
+        .count();
+    let num_not_tried = num_results - num_tried;
+
+    let recipes_with_metadata = FoundRecipesWithMetadata {
+        recipes: result_recipes,
+        num_results: num_results,
+        num_tried: num_tried,
+        num_not_tried: num_not_tried,
+    };
+
     Html(SearchForm {
         seasons: ESeason::get_seasons(),
         books: &books,
         courses: course_refs,
-        found_recipes: Some(recipes),
+        found_recipes: Some(recipes_with_metadata),
         title: "Search",
         recipes_to_ingredients,
         user_id: maybe_user_id,
