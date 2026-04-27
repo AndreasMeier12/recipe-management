@@ -19,17 +19,25 @@
                         method: 'POST'
                     }).then(
                         () => {
+                            let elementById = document.getElementById("result-num-tried");
+                            let numTried = parseInt(elementById.innerHTML)
+
                             if (btn.classList.contains("tried-true")) {
                                 btn.classList.remove("tried-true")
                                 btn.classList.remove("btn-info")
                                 btn.classList.add("btn-primary")
+                                numTried = numTried - 1;
                                 btn.innerHTML = "tried?"
                             } else {
                                 btn.classList.add("tried-true")
                                 btn.classList.remove("btn-primary")
                                 btn.classList.add("btn-info")
+                                numTried = numTried + 1;
+
                                 btn.innerHTML = "misclicked?"
                             }
+                            elementById.innerHTML = numTried.toString()
+
                         }
                     )
                 })
