@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use itertools::Itertools;
+use regex::Regex;
 use tantivy::schema::{Facet, FacetOptions, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED};
 use tantivy::tokenizer::{AsciiFoldingFilter, Language, LowerCaser, SimpleTokenizer, Stemmer, TextAnalyzer};
 use tantivy::{Document, Index, IndexWriter, TantivyDocument, Term};
@@ -144,8 +145,9 @@ pub fn build_query(options: SearchPrefill, book_names: HashMap<i32, String>, sea
     if let Some(i) = course_names.get(&options.course.unwrap_or(-1)) {
         parts.push(format!("+course:/course/{}", i))
     }
-
-    return parts.join(" ");
+    let re = Regex::new(r"'").expect("This should be a functioning regex!");
+    let string = parts.iter().map(|x| re.replace(x, "\\\'")).join(" ");
+    return string;
 
 }
 
