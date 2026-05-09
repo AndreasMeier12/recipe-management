@@ -1,5 +1,6 @@
 use crate::models::{FullRecipe, QCourse};
 use crate::parsetypes::ESeason;
+use crate::strops::extract_domain;
 use crate::templates::DisplayFullRecipe;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
@@ -14,8 +15,9 @@ pub fn mapRecipeForSearch(recipe: &FullRecipe, commented: &HashSet<i32>, tried_i
     return DisplayFullRecipe {
         recipe: recipe.clone(),
         season_name: "".to_string(),
-        book_name: book_name,
+        book_name: map_book_name(recipe, book_names),
         url: recipe.recipe_url.clone(),
+        source: map_source(recipe, book_name, recipe.page, recipe.recipe_url.clone()),
         tried: tried_ids.contains(&recipe.recipe_id.unwrap()),
         ingredients,
         texted: texted.contains(&recipe.recipe_id.unwrap()),
@@ -23,6 +25,30 @@ pub fn mapRecipeForSearch(recipe: &FullRecipe, commented: &HashSet<i32>, tried_i
         course: course,
         season: seasons.get(&recipe.primary_season).expect("Recipe must have a primary season").to_string()
     };
+}
+
+fn map_source(recipe: &FullRecipe, book_name: Option<String>, page_number: Option<i32>, url: Option<String>) -> String {
+    if book_name.is_none() && url.is_none() {
+        return "here".to_string();
+    }
+    let mut parts: Vec<String> = vec! {};
+
+
+    if let Some(myUrl) = url {
+        return extract_domain(myUrl);
+    }
+
+
+    if let Some(book) = book_name {
+        parts.push(book)
+    }
+
+
+    if let Some(page) = page_number {
+        parts.push(page.to_string());
+    }
+
+    return parts.join("")
 }
 
 fn map_book_name(recipe: &FullRecipe, book_names: &HashMap<i32, String>) -> Option<String> {

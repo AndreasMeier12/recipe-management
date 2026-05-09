@@ -88,13 +88,12 @@ pub struct RecipeForm<'a> {
     pub seasons: Vec<ESeason>,
     pub prefill: RecipePrefill,
     pub title: &'a str,
-    pub newest: Option<FullRecipe>,
+    pub newest: Option<DisplayFullRecipe>,
     pub user_id: Option<i32>,
     pub build_version: &'a str,
     pub debug_compilation: bool,
 
 }
-
 
 
 
@@ -107,6 +106,7 @@ impl<'a> RecipeForm<'a> {
 pub struct DisplayFullRecipe {
     pub recipe: FullRecipe,
     pub season_name: String,
+    pub source: String,
     pub book_name: Option<String>,
     pub url: Option<String>,
     pub tried: bool,

@@ -276,7 +276,14 @@ async fn recipe_form(session: WritableSession, prefill: Query<RecipePrefill>) ->
     let courses: Vec<QCourse> = course.load::<QCourse>(con).unwrap();
     let course_refs: &Vec<QCourse> = &courses;
     use recipemanagement::schema::recipe::dsl::*;
-    let newest_recipe: Option<FullRecipe> = recipe.order(recipe_id.desc()).first::<FullRecipe>(con)
+    let id_to_season: HashMap<i32, ESeason> = ESeason::get_seasons().iter().map(|x| (x.value_i32(), x.clone())).collect();
+    let id_to_courses: HashMap<i32, &QCourse> = Map::collect(course_refs.iter().map(|x| (x.course_id.expect("Should exist"), x.clone())));
+    let id_to_book_name = books.iter()
+        .map(|x| (x.book_id.clone().unwrap(), x.book_name.clone().unwrap()))
+        .collect();
+
+    let newest_recipe: Option<DisplayFullRecipe> = recipe.order(recipe_id.desc()).first::<FullRecipe>(con)
+        .map(|x| mapRecipeForSearch(&x, &HashSet::new(), &HashSet::new(), &HashSet::new(), &id_to_book_name, &HashMap::new(), &id_to_season, &id_to_courses))
         .ok();
     let build_version = env!("VERGEN_GIT_SHA");
 
