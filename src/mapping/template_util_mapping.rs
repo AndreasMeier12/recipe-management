@@ -39,16 +39,7 @@ fn map_source(recipe: &FullRecipe, book_name: Option<String>, page_number: Optio
     }
 
 
-    if let Some(book) = book_name {
-        parts.push(book)
-    }
-
-
-    if let Some(page) = page_number {
-        parts.push(page.to_string());
-    }
-
-    return parts.join("")
+    return book_name.expect("Already checked for it");
 }
 
 fn map_book_name(recipe: &FullRecipe, book_names: &HashMap<i32, String>) -> Option<String> {
